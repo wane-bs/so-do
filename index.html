@@ -61,50 +61,49 @@
         <h2>1. Kiến trúc tổng quan (Architecture Overview)</h2>
         <p class="description">Mô hình chiến lược lai (Hybrid Strategy) với Blockchain Core làm trung tâm.</p>
         <div class="mermaid">
-            graph TD
+            graph LR
             %% Define Styles
             classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
             classDef backend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
             classDef blockchain fill:#fff3e0,stroke:#e65100,stroke-width:2px;
             classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+            classDef explorer fill:#e0f7fa,stroke:#006064,stroke-width:2px;
 
-            subgraph User_Interaction [Lớp Tương Tác Người Dùng - User Interaction]
+            subgraph User_Interaction [Lớp Tương Tác Người Dùng]
             direction TB
             Frontend["Frontend UI<br />React/FSD"]:::frontend
+            ExplorerUI["Explorer UI<br />React Page"]:::explorer
             end
 
-            subgraph System_Logic [Lớp Logic Hệ Thống - System Logic]
+            subgraph System_Logic [Lớp Logic Hệ Thống]
             direction TB
             Backend["Backend API<br />Express/VSA"]:::backend
             end
 
-            subgraph Blockchain_Core [Lớp Blockchain Cốt Lõi - Blockchain Core]
+            subgraph Blockchain_Core [Lớp Blockchain Cốt Lõi]
             direction TB
             Contracts["Smart Contracts<br />Hardhat Local"]:::blockchain
             IPFS["IPFS Simulator<br />Local Storage"]:::blockchain
             end
 
-            subgraph Third_Party [Dịch Vụ Bên Thứ 3 - External Services]
+            subgraph Third_Party [Dịch Vụ Bên Thứ 3]
             direction TB
             Mocks["Mock Services<br />Legal, IoT, Bank"]:::external
             end
 
             %% Flows
-            %% Flows
-            Frontend -- "1. Gửi yêu cầu HTTP (JSON)" --> Backend
-            Backend -- "2. Trả về dữ liệu" --> Frontend
+            Frontend -- "1. HTTP Request (JSON)" --> Backend
+            Backend -- "2. HTTP Response" --> Frontend
 
-            Backend -- "3. Gọi hàm Ethers.js (Ghi/Đọc)" --> Contracts
-            Contracts -. "4. Phát sự kiện/Logs" .-> Backend
+            Backend -- "3. Ethers.js (Read/Write)" --> Contracts
+            Contracts -. "4. Events/Logs" .-> Backend
 
-            Backend -- "Tải lên/Lấy file" --> IPFS
+            Backend -- "Upload/Fetch" --> IPFS
 
-            Backend -- "Gọi API bên thứ 3" --> Mocks
-            Contracts -. "Dùng Chainlink Functions" .-> Mocks
+            Backend -- "API Calls" --> Mocks
+            Contracts -. "Chainlink Functions" .-> Mocks
 
-            %% Linking for layout
-            User_Interaction ~~~ System_Logic
-            System_Logic ~~~ Blockchain_Core
+            ExplorerUI -- "JSON-RPC Query" --> Contracts
         </div>
     </div>
 
@@ -445,7 +444,7 @@
     <!-- 5. Frontend -->
     <div class="diagram-container">
         <h2>5. Cấu Trúc Frontend (FSD)</h2>
-        <p class="description">Tuân thủ Feature-Sliced Design.</p>
+        <p class="description">Tuân thủ Feature-Sliced Design. Đã tích hợp module Explorer.</p>
         <div class="mermaid">
             graph TD
             classDef app fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
@@ -463,6 +462,7 @@
             Login[LoginPage]:::page
             Register[RegisterPage]:::page
             Home[HomePage]:::page
+            Explorer["ExplorerPage (New)"]:::page
             Account[AccountPage]:::page
             Wallet[WalletPage]:::page
             RentOut[RentOutPage]:::page
@@ -484,10 +484,12 @@
 
             App -- "Điều hướng đến" --> Login
             App -- "Điều hướng đến" --> Home
+            App -- "Điều hướng đến" --> Explorer
             App -- "Điều hướng đến" --> Owner
 
             Login -- "Nhúng thành phần" --> UI
             Home -- "Nhúng thành phần" --> UI
+            Explorer -- "Nhúng thành phần" --> UI
             Owner -- "Nhúng thành phần" --> UI
         </div>
     </div>
@@ -964,7 +966,36 @@
         </div>
     </div>
 
+    <!-- 12. Blockchain Explorer -->
+    <div class="diagram-container">
+        <h2>12. Kiến trúc Blockchain Explorer (SuChinDB Explorer)</h2>
+        <p class="description">Sơ đồ minh hoạt cách hoạt động của công cụ tra cứu dữ liệu on-chain, kết nối trực tiếp
+            với nút Blockchain qua RPC.</p>
+        <div class="mermaid">
+            graph LR
+            subgraph Frontend [Explorer Interface]
+            ExplorerUI["Explorer Pages<br />(Dashboard, Events)"]
+            Service["ExplorerService<br />(Ethers.js Wrapper)"]
+            end
 
+            subgraph Node [Blockchain Node Interface]
+            RPC["JSON-RPC Interface<br />Port: 8545"]
+            Ledger["Block Data<br />(Chain State)"]
+            Events["Event Logs<br />(Topic Filters)"]
+            end
+
+            ExplorerUI --> Service
+            Service -->|"ethers.JsonRpcProvider"| RPC
+            RPC --> Ledger
+            RPC --> Events
+
+            classDef ui fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+            classDef node fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+
+            class ExplorerUI,Service ui;
+            class RPC,Ledger,Events node;
+        </div>
+    </div>
 
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
