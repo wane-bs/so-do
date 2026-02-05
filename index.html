@@ -72,7 +72,7 @@
             subgraph User_Interaction [Lớp Tương Tác Người Dùng]
             direction TB
             Frontend["Frontend UI<br />React/FSD"]:::frontend
-            ExplorerUI["Explorer UI<br />React Page"]:::explorer
+            ExplorerUI["Explorer Page (Nuevo)<br />Dashboard/Logs"]:::explorer
             end
 
             subgraph System_Logic [Lớp Logic Hệ Thống]
@@ -88,7 +88,7 @@
 
             subgraph Third_Party [Dịch Vụ Bên Thứ 3]
             direction TB
-            Mocks["Mock Services<br />Legal, IoT, Bank"]:::external
+            Mocks["Mock Services<br />Legal, IoT, Payment"]:::external
             end
 
             %% Flows
@@ -98,11 +98,12 @@
             Backend -- "3. Ethers.js (Read/Write)" --> Contracts
             Contracts -. "4. Events/Logs" .-> Backend
 
-            Backend -- "Upload/Fetch" --> IPFS
+            Backend -- "Local File I/O" --> IPFS
 
             Backend -- "API Calls" --> Mocks
             Contracts -. "Chainlink Functions" .-> Mocks
 
+            ExplorerUI -- "Reads" --> Backend
             ExplorerUI -- "JSON-RPC Query" --> Contracts
         </div>
     </div>
@@ -154,8 +155,7 @@
 
             class RentalAgreementSBT {
             &lt;&lt;Soulbound&gt;&gt;
-            +termsHash
-            +deliveryHash
+            +rentalTerms (mapping)
             -_update() [Overrides transfer]
             }
             RentalAgreementSBT --|&gt; ERC721
@@ -164,7 +164,7 @@
 
             class VinaLibVault {
             &lt;&lt;Ledger&gt;&gt;
-            +EvidencePack[] rentals
+            +activeRentals (mapping)
             +createRental()
             +requestReturn()
             +confirmReturn()
@@ -294,6 +294,7 @@
         </div>
 
         <h3 style="color: #2980b9; margin-top: 30px;">3.4. Tích hợp IPFS vào VinaLib (IPFS Integration)</h3>
+        <p class="description">Hiện tại sử dụng IPFS Simulator (Local) để mô phỏng hành vi lưu trữ phân tán.</p>
         <div class="mermaid">
             graph TB
             subgraph "Frontend (React/Next.js)"
@@ -304,7 +305,8 @@
 
             subgraph "Backend (Node.js)"
             API["Express Server"]
-            PinataSDK["Pinata SDK"]
+            IPFSMod["IPFS Module<br />(Simulator Adapter)"]
+            LocalFS["Local Filesystem<br />/IPFS/storage"]
             end
 
             subgraph "Blockchain (Avalanche)"
@@ -312,34 +314,29 @@
             Storage["Storage:<br />mapping bookId to CID"]
             end
 
-            subgraph "IPFS Network"
-            PinataNode["Pinata Nodes<br />(Pinning Service)"]
-            Gateway["Pinata Gateway"]
-            end
-
             UploadBtn -->|1. Select Image| API
-            API -->|2. Upload to IPFS| PinataSDK
-            PinataSDK -->|3. Add + Pin| PinataNode
-            PinataNode -->|4. Return CID| PinataSDK
-            PinataSDK -->|5. CID| API
+            API -->|2. Upload Stream| IPFSMod
+            IPFSMod -->|3. SHA-256 Hash| IPFSMod
+            IPFSMod -->|4. Save File| LocalFS
+            IPFSMod -->|5. Return CID| API
             API -->|6. Store CID| Contract
             Contract -->|7. Emit Event| Storage
 
             UI -->|8. Fetch Book Data| Contract
             Contract -->|9. Return CID| UI
-            DisplayImg -->|10. Request Image| Gateway
-            Gateway -->|11. Fetch from IPFS| PinataNode
-            Gateway -->|12. Return Image| DisplayImg
+            DisplayImg -->|10. Request /api/ipfs/:cid| API
+            API -->|11. Read File| LocalFS
+            API -->|12. Return Image Stream| DisplayImg
 
             classDef frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
             classDef backend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
             classDef blockchain fill:#fff3e0,stroke:#e65100,stroke-width:2px
-            classDef ipfs fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+            classDef storage fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 
             class UI,UploadBtn,DisplayImg frontend
-            class API,PinataSDK backend
+            class API,IPFSMod backend
             class Contract,Storage blockchain
-            class PinataNode,Gateway ipfs
+            class LocalFS storage
         </div>
 
         <h3 style="color: #2980b9; margin-top: 30px;">3.5. Data Retrieval và Rendering Pipeline</h3>
@@ -410,33 +407,29 @@
             Payment[Payment Module]:::module
             IoT[IoT Module]:::module
             IPFS_Mod[IPFS Module]:::module
-            Legal[Legal Module]:::module
+            Config[Config Module]:::module
             Policy[Policy Engine Module]:::module
+            Legal[Legal Module]:::module
             end
 
             Server -- "Gắn route /api/auth" --> Identity
             Server -- "Gắn route /api/books" --> Book
             Server -- "Gắn route /api/booking" --> Rental
             Server -- "Gắn route /api/admin" --> Admin
-            Server -- "Gắn route /api/payment" --> Payment
-            Server -- "Khởi tạo Adapter IoT" --> IoT
-            Server -- "Khởi tạo Adapter IPFS" --> IPFS_Mod
-            Server -- "Khởi tạo Adapter Pháp lý" --> Legal
+            Server -- "Gắn route /api/webhook" --> Payment
+            Server -- "Gắn route /api/devices" --> IoT
+            Server -- "Gắn route /ipfs" --> IPFS_Mod
+            Server -- "Gắn route /api/config" --> Config
             Server -- "Gắn route /api/policy" --> Policy
+            Server -- "Gắn route /api/contracts" --> Legal
 
             Identity -- Chứa --> I_Ctrl["Controller"]:::internal
             Identity -- Chứa --> I_Store["Store"]:::internal
 
-            Book -- Chứa --> B_Ctrl["Controller"]:::internal
-            Book -- Chứa --> B_Store["Store"]:::internal
+            Rental -- "Sử dụng" --> Policy
+            Rental -- "Sử dụng" --> Legal
 
-            Rental -- Chứa --> R_Ctrl["Controller"]:::internal
-            Rental -- Chứa --> R_Store["Store"]:::internal
-
-            Policy -- "Tham chiếu" --> R_Store
-            Policy -- "Đưa quyết định" --> Rental
-
-            VSA_Note["QUY TẮC VSA: Không có Service Layer (Phase 1)<br />Chỉ dùng In-Memory Store"]:::internal
+            VSA_Note["QUY TẮC VSA: Không có Service Layer (Phase 1)<br />Shared Store cho Cross-Module Data"]:::internal
             Rental ~~~ VSA_Note
         </div>
     </div>
@@ -462,24 +455,26 @@
             Login[LoginPage]:::page
             Register[RegisterPage]:::page
             Home[HomePage]:::page
-            Explorer["ExplorerPage (New)"]:::page
+            Explorer["Explorer Pages"]:::page
             Account[AccountPage]:::page
             Wallet[WalletPage]:::page
             RentOut[RentOutPage]:::page
+            BookDetail[BookDetail]:::page
+            Settings[Settings]:::page
             Owner[OwnerDashboard]:::page
             Lender[LenderDashboard]:::page
             end
 
             subgraph Shared_Layer [Tầng Dùng Chung - Shared Layer]
             UI["UI Kit - Button, Input"]:::shared
-            API[Axios Config]:::shared
-            Lib[Utils]:::shared
+            API["Axios Config"]:::shared
+            Lib["Utils"]:::shared
             end
 
             subgraph Empty_Layers_Phase1 [Các Tầng Chờ - Pending Phase 2]
-            Widgets[Widgets]:::empty
-            Features[Features]:::empty
-            Entities[Entities]:::empty
+            Widgets["Widgets (.gitkeep)"]:::empty
+            Features["Features (.gitkeep)"]:::empty
+            Entities["Entities (.gitkeep)"]:::empty
             end
 
             App -- "Điều hướng đến" --> Login
@@ -543,18 +538,18 @@
             note right of User: Bước 2: Đặt thuê & Ký kết (Booking & Contracts)
             User->>FE: Create Booking Request
             FE->>BE: POST /api/booking
-            BE->>Legal: Request Contract Hash
-            Legal-->>BE: Returns termsHash
-            User->>FE: Sign Contract (Click Sign)
-            FE->>BE: Update Status -> SIGNED
+            BE->>Legal: Generate Contract Preview
+            Legal-->>BE: Returns previewId, termsHash
+            User->>FE: Review Contract (Preview)
+            User->>FE: Accept & Sign (Click Sign)
+            FE->>BE: POST /api/contracts/:id/accept
 
-            %% Policy Engine Point
             BE->>BE: Policy Engine Check (TrustScore)
             alt AUTO APPROVED
-            BE-->>FE: Status -> SIGNED_UNPAID (Skip Admin)
+            BE-->>FE: Status -> SIGNED_UNPAID
             else REVIEW NEEDED
             BE-->>FE: Status -> SIGNED_PENDING_APPROVAL
-            Admin->>FE: Approve Rental Request
+            Admin->>FE: Approve Rental Request (Manual)
             FE->>BE: Approve Logic
             BE-->>FE: Status -> SIGNED_UNPAID
             end
@@ -597,7 +592,7 @@
     <!-- 7. Interaction -->
     <div class="diagram-container">
         <h2>7. Interaction Flows (Actors)</h2>
-        <p class="description">Quyền hạn của các tác nhân trong hệ thống.</p>
+        <p class="description">Quyền hạn của các tác nhân trong hệ thống (RBAC).</p>
         <div class="mermaid">
             graph LR
             %% Styles
@@ -614,11 +609,11 @@
             Pay[Thanh toán & Mở khóa]:::action
             Return[Yêu cầu Trả]:::action
 
-            Renter -- "Thực hiện" --> Browse
-            Renter -- "Thực hiện" --> Booking
-            Renter -- "Thực hiện" --> Sign
-            Renter -- "Thực hiện" --> Pay
-            Renter -- "Thực hiện" --> Return
+            Renter -- "User Role" --> Browse
+            Renter -- "User Role" --> Booking
+            Renter -- "User Role" --> Sign
+            Renter -- "User Role" --> Pay
+            Renter -- "User Role" --> Return
             end
 
             subgraph Lender_Zone [Khu vực Chủ Sách - Lender]
@@ -627,40 +622,41 @@
             Upload[Đăng sách lên]:::action
             ViewOwn[Xem sách đã đăng]:::action
 
-            Lender -- "Thực hiện" --> Upload
-            Lender -- "Thực hiện" --> ViewOwn
+            Lender -- "Lender Role" --> Upload
+            Lender -- "Lender Role" --> ViewOwn
             end
 
             subgraph Admin_Zone [Khu vực Quản Trị - Admin]
             direction TB
             Admin((Admin)):::actor
             Verify[Duyệt sách lên sàn]:::adminAction
-            Approve[Duyệt đơn thuê]:::adminAction
+            Approve[Duyệt đơn thuê (Manual)]:::adminAction
             Confirm[Xác nhận Trả sách]:::adminAction
             Monitor[Giám sát Hệ thống]:::adminAction
 
-            Admin -- "Thực hiện" --> Verify
-            Admin -- "Thực hiện" --> Approve
-            Admin -- "Thực hiện" --> Confirm
-            Admin -- "Thực hiện" --> Monitor
+            Admin -- "Admin Role" --> Verify
+            Admin -- "Admin Role" --> Approve
+            Admin -- "Admin Role" --> Confirm
+            Admin -- "Admin Role" --> Monitor
             end
 
-            %% Interactions across zones (Optional if needed, but keeping isolated helps clarity)
-            Booking -. "Cần ADMIN phê duyệt" .-> Approve
-            Return -. "Cần ADMIN xác nhận" .-> Confirm
+            %% Interactions across zones
+            Booking -. "Cần duyệt nếu Rủi ro Cao" .-> Approve
+            Return -. "Cần xác nhận Vật lý" .-> Confirm
         </div>
     </div>
 
     <!-- 8. Mocks -->
     <div class="diagram-container">
         <h2>8. Dịch Vụ Giả Lập & Cấu Trúc IPFS</h2>
-        <p class="description">Các dịch vụ giả lập hỗ trợ hệ thống.</p>
+        <p class="description">Các dịch vụ giả lập hỗ trợ hệ thống (Chạy trên Port 4000).</p>
         <div class="mermaid">
             graph TD
             classDef mock fill:#fff3e0,stroke:#e65100,stroke-width:2px;
             classDef ipfs fill:#e0f7fa,stroke:#006064,stroke-width:2px;
 
             subgraph Mocks [Dịch Vụ Giả Lập - Mock Services :4000]
+            MockApp["mock-server/index.js"]:::mock
             Legal["Legal Service<br />FPT eContract"]:::mock
             IoT["IoT Service<br />Tuya Smart Lock"]:::mock
             Bank["Banking Service<br />Casso Webhook"]:::mock
@@ -669,8 +665,12 @@
             subgraph IPFS [Giả Lập IPFS - IPFS Simulator]
             Images["images/*.jpg"]:::ipfs
             Meta["metadata/*.json"]:::ipfs
-            Route["/ipfs/:cid"]:::ipfs
+            Route["/api/ipfs/:cid<br />(Proxy Mode)"]:::ipfs
             end
+
+            MockApp -- "Hosting" --> Legal
+            MockApp -- "Hosting" --> IoT
+            MockApp -- "Hosting" --> Bank
 
             Legal -- cung cấp --> TermsHash
             IoT -- cung cấp --> Ticket/OTP
@@ -696,19 +696,23 @@
 
             subgraph Frontend_Layer [Tầng Giao Diện - Frontend]
             direction TB
-            UI_Home["HomePage.tsx"]:::ui
+            UI_Page["BookDetailPage.tsx"]:::ui
+            UI_Comp["BookingModal.tsx"]:::ui
             UI_Btn[Rent Button]:::ui
-            UI_Home -- "Chứa nút bấm" --> UI_Btn
+            UI_Page -- "Chứa" --> UI_Comp
+            UI_Comp -- "Chứa" --> UI_Btn
             end
 
             subgraph Backend_Layer [Tầng API - Backend]
             direction TB
             API_Route["POST /api/booking"]:::api
             API_Ctrl["RentalController.js<br />createBooking"]:::api
+            API_Adapter["BlockchainAdapter.js<br />createRentalOnChain"]:::api
             API_Pay["PaymentController.js<br />webhook"]:::api
 
             API_Route -- "Xử lý bởi" --> API_Ctrl
-            API_Pay -- "Kích hoạt Mint" --> API_Ctrl
+            API_Pay -- "Kích hoạt Sync" --> API_Ctrl
+            API_Ctrl -- "Sử dụng Adapter" --> API_Adapter
             end
 
             subgraph Blockchain_Layer [Tầng Hợp Đồng - Smart Contracts]
@@ -726,7 +730,7 @@
             %% Mappings (Arrows)
             UI_Btn -- "1. Bấm thuê" --> API_Route
             API_Ctrl -. "2. Đợi thanh toán" .- API_Pay
-            API_Ctrl -- "3. Gọi Ethers.js" --> SC_Func
+            API_Adapter -- "3. Gọi Ethers.js" --> SC_Func
         </div>
     </div>
 
@@ -742,75 +746,61 @@
             flowchart TD
             Start([Người thuê ký hợp đồng<br />Terms Signed]) --> Gate0{Kiểm tra sách<br />Book Ready?}
 
-            Gate0 -->|"status ≠ VERIFIED_IN_LOCKER<br />hoặc lockerId = null"| Manual1[MANUAL<br />reasonCode:
-            BOOK_NOT_READY<br />deadlineAt: +24h]
-            Gate0 -->|"isHeld = true<br />hoặc isRented = true"| Reject1[REJECT<br />reasonCode: BOOK_NOT_AVAILABLE]
-            Gate0 -->|"✓ Sách sẵn sàng"| CalcTrust[Tính TrustScore<br />base=50 +10*rentals -20*disputes
-            -10*late<br />clamp 0-100]
+            Gate0 -->|"status ≠ VERIFIED<br />hoặc isRented = true"| Reject1[REJECT<br />reasonCode: BOOK_NOT_AVAILABLE]
+            Gate0 -->|"✓ Sách sẵn sàng"| CalcTrust["Tính TrustScore<br />base=50 +10*min(rentals,5)<br />-20*disputes
+            -10*late<br />clamp 0-100"]
 
-            CalcTrust --> GetInputs[Thu thập inputs:<br />• tier = book.riskTier<br />• band = HIGH/MED/LOW<br />•
-            depositRatio = deposit/value]
+            CalcTrust --> GetInputs[Thu thập inputs:<br />• tier = book.riskTier (Default: C)<br />• band =
+            HIGH/MED/LOW<br />• depositRatio = deposit/value]
 
             GetInputs --> CheckTier{Tier nào?}
 
             %% Tier C Branch
             CheckTier -->|"Tier C<br />(Low Risk)"| TierC{TrustBand?}
-            TierC -->|"HIGH/MED"| AutoC1[AUTO<br />reasonCode: TIER_C_OK<br />pickupDeadline: +60m]
-            TierC -->|"LOW"| DepositC{depositRatio?}
-            DepositC -->|"
-            < 50%"| ReviewC[REVIEW<br />reasonCode: TIER_C_LOW_TRUST_NEED_REVIEW<br />deadlineAt: +30m]
-            DepositC -->|"≥ 50%"| AutoC2[AUTO<br />reasonCode: TIER_C_OK<br />pickupDeadline: +60m]
+            TierC -->|"LOW & Ratio &lt; 50%"| ReviewC[REVIEW<br />reasonCode:
+            TIER_C_LOW_TRUST_NEED_REVIEW<br />deadline: +30m]
+            TierC -->|"Else"| AutoC[AUTO<br />reasonCode: TIER_C_OK<br />deadline: +60m]
 
             %% Tier B Branch
             CheckTier -->|"Tier B<br />(Medium Risk)"| TierB{TrustBand?}
-            TierB -->|"HIGH"| AutoB1[AUTO<br />reasonCode: TIER_B_HIGH_TRUST<br />pickupDeadline: +60m]
-            TierB -->|"MED"| DepositB1{depositRatio?}
-            DepositB1 -->|"≥ 50%"| AutoB2[AUTO<br />reasonCode: TIER_B_MED_TRUST_DEPOSIT_OK<br />pickupDeadline: +60m]
-            DepositB1 -->|"
-            < 50%"| ReviewB[REVIEW<br />reasonCode: TIER_B_MED_TRUST_REVIEW<br />deadlineAt: +30m]
-            TierB -->|"LOW"| DepositB2{depositRatio?}
-            DepositB2 -->|"≥ 70%"| ReviewB2[REVIEW<br />reasonCode:
-            TIER_B_LOW_TRUST_HIGH_DEPOSIT_REVIEW<br />deadlineAt: +30m]
-            DepositB2 -->|"
-            < 70%"| ManualB[MANUAL<br />reasonCode: TIER_B_LOW_TRUST_MANUAL<br />deadlineAt: +2h]
+            TierB -->|"HIGH"| AutoB1[AUTO<br />reasonCode: TIER_B_HIGH_TRUST]
+            TierB -->|"MED"| DepositB1{Ratio?}
+            DepositB1 -->|"≥ 50%"| AutoB2[AUTO<br />reasonCode: TIER_B_MED_TRUST_DEPOSIT_OK]
+            DepositB1 -->|"&lt; 50%"| ReviewB[REVIEW<br />reasonCode: TIER_B_MED_TRUST_REVIEW]
+            TierB -->|"LOW"| DepositB2{Ratio?}
+            DepositB2 -->|"≥ 70%"| ReviewB2[REVIEW<br />reasonCode: TIER_B_LOW_TRUST_HIGH_DEPOSIT]
+            DepositB2 -->|"&lt; 70%"| ManualB[MANUAL<br />reasonCode: TIER_B_LOW_TRUST_MANUAL]
 
             %% Tier A Branch
             CheckTier -->|"Tier A<br />(High Risk)"| TierA{TrustBand?}
             TierA -->|"LOW"| RejectA[REJECT<br />reasonCode: TIER_A_LOW_TRUST_REJECT]
-            TierA -->|"MED hoặc HIGH"| ManualA[MANUAL<br />reasonCode: TIER_A_MANUAL<br />deadlineAt: +2h]
+            TierA -->|"Other"| ManualA[MANUAL<br />reasonCode: TIER_A_MANUAL<br />deadline: +2h]
 
             %% Final states
-            AutoC1 --> StatusAuto[Status: SIGNED_UNPAID<br />approvalMode: AUTO]
-            AutoC2 --> StatusAuto
+            AutoC --> StatusAuto[Status: SIGNED_UNPAID<br />approvalMode: AUTO]
             AutoB1 --> StatusAuto
             AutoB2 --> StatusAuto
 
-            ReviewC --> StatusReview[Status: SIGNED_PENDING_APPROVAL<br />approvalMode: REVIEW<br />reviewState:
-            PENDING]
+            ReviewC --> StatusReview[Status: SIGNED_PENDING_APPROVAL<br />approvalMode: REVIEW]
             ReviewB --> StatusReview
             ReviewB2 --> StatusReview
 
-            Manual1 --> StatusManual[Status: SIGNED_PENDING_APPROVAL<br />approvalMode: MANUAL]
-            ManualB --> StatusManual
+            ManualB --> StatusManual[Status: SIGNED_PENDING_APPROVAL<br />approvalMode: MANUAL]
             ManualA --> StatusManual
 
             Reject1 --> StatusReject[Status: REJECTED]
             RejectA --> StatusReject
 
             %% Styles
-            classDef autoClass fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px,color:#000;
-            classDef reviewClass fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000;
-            classDef manualClass fill:#ffccbc,stroke:#d84315,stroke-width:3px,color:#000;
-            classDef rejectClass fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#000;
-            classDef processClass fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-            classDef decisionClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+            classDef autoClass fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+            classDef reviewClass fill:#fff9c4,stroke:#f57f17,stroke-width:2px;
+            classDef manualClass fill:#ffccbc,stroke:#d84315,stroke-width:2px;
+            classDef rejectClass fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
 
-            class AutoC1,AutoC2,AutoB1,AutoB2,StatusAuto autoClass;
+            class AutoC,AutoB1,AutoB2,StatusAuto autoClass;
             class ReviewC,ReviewB,ReviewB2,StatusReview reviewClass;
-            class Manual1,ManualB,ManualA,StatusManual manualClass;
+            class ManualB,ManualA,StatusManual manualClass;
             class Reject1,RejectA,StatusReject rejectClass;
-            class CalcTrust,GetInputs processClass;
-            class Gate0,CheckTier,TierC,TierB,TierA,DepositC,DepositB1,DepositB2 decisionClass;
         </div>
 
         <h3 style="color: #2980b9; margin-top: 30px;">10.2. Bảng Ma trận Chính sách (Policy Matrix)</h3>
@@ -919,8 +909,9 @@
 
     <!-- 11. Contract Generator -->
     <div class="diagram-container">
-        <h2>11. Quy trình Tạo Hợp Đồng (Contract Generation Flow)</h2>
-        <p class="description">Quy trình sinh hợp đồng động từ Template, điền biến, hash SHA-256 và lưu trữ tạm thời
+        <h2>11. Quy trình Tạo Hợp Đồng (Contract Generator Module)</h2>
+        <p class="description">Quy trình sinh hợp đồng động từ Template, điền biến, hash SHA-256 (cho SBT) và lưu trữ
+            tạm thời
             (TTL).</p>
         <div class="mermaid">
             flowchart TD
@@ -930,52 +921,52 @@
 
             subgraph Inputs [Dữ liệu Đầu vào]
             Template["Template Hợp Đồng<br />(Markdown + Variables)"]
-            Data["Dữ liệu Thuê<br />(Renter, Lender, Book, Dates)"]
-            Config["Cấu hình<br />(Fees, TTL Defaults)"]
+            Data["Metadata Thuê<br />(User, Book, Dates)"]
+            Config["Config JSON<br />(Defaults, Fees)"]
             end
 
             subgraph Generator [Contract Generator Module]
             Fill["Điền biến (Fill Placeholders)"]
             Hash["Tính TermsHash (SHA-256)"]
+            UUID["Tạo Preview ID (UUIDv4)"]
             end
 
-            subgraph TempStore [Bộ nhớ đệm - TTL Storage]
-            Store["In-Memory Map<br />Duration: 7 Days"]
+            subgraph TempStore [Bộ nhớ đệm - TempStore.js]
+            Store["In-Memory Map<br />Key: PreviewID<br />Value: Content + Hash"]
             end
 
-            subgraph Outputs [Kết quả]
-            Preview["Nội dung Hợp đồng<br />(Cho User xem)"]
-            Action["User Action<br />(Accept/Reject)"]
+            subgraph Outputs [Kết quả & Hành Động]
+            PreviewAPI["GET /api/contracts/:id"]
+            AcceptAPI["POST /api/contracts/:id/accept"]
             end
 
             Template --> Fill
             Data --> Fill
             Config --> Fill
             Fill -- "Raw Content" --> Hash
-            Fill -- "Content" --> Preview
+            Fill -- "Content" --> UUID
+            Hash --> UUID
+            UUID --> Store
 
-            Preview --> Action
-            Action -- "Accept" --> Store
-            Hash -- "Accept" --> Store
+            Store -. "Read" .-> PreviewAPI
+            AcceptAPI -- "Update Status" --> Store
+            AcceptAPI -- "Return Hash & ID" --> BackendFlow["RentalController"]
 
-            Store -. "Khi thanh toán" .-> Blockchain["Smart Contract<br />VinaLibVault"]
-
-            class Fill,Hash process
+            class Fill,Hash,UUID process
             class Store storage
-            class Preview,Action output
+            class PreviewAPI,AcceptAPI output
         </div>
     </div>
 
     <!-- 12. Blockchain Explorer -->
     <div class="diagram-container">
         <h2>12. Kiến trúc Blockchain Explorer (SuChinDB Explorer)</h2>
-        <p class="description">Sơ đồ minh hoạt cách hoạt động của công cụ tra cứu dữ liệu on-chain, kết nối trực tiếp
-            với nút Blockchain qua RPC.</p>
+        <p class="description">Công cụ tra cứu dữ liệu on-chain, sử dụng Service Layer để gọi JSON-RPC.</p>
         <div class="mermaid">
             graph LR
             subgraph Frontend [Explorer Interface]
             ExplorerUI["Explorer Pages<br />(Dashboard, Events)"]
-            Service["ExplorerService<br />(Ethers.js Wrapper)"]
+            Service["ExplorerService<br />(ethers.JsonRpcProvider)"]
             end
 
             subgraph Node [Blockchain Node Interface]
@@ -985,7 +976,7 @@
             end
 
             ExplorerUI --> Service
-            Service -->|"ethers.JsonRpcProvider"| RPC
+            Service -->|"getBlock, getLogs"| RPC
             RPC --> Ledger
             RPC --> Events
 
