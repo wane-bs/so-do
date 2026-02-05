@@ -603,11 +603,11 @@
             subgraph Renter_Zone [Khu vực Người Thuê - Renter]
             direction TB
             Renter((Renter)):::actor
-            Browse[Xem sách]:::action
-            Booking[Đặt thuê]:::action
-            Sign[Ký Hợp Đồng]:::action
-            Pay[Thanh toán & Mở khóa]:::action
-            Return[Yêu cầu Trả]:::action
+            Browse["Xem sách"]:::action
+            Booking["Đặt thuê"]:::action
+            Sign["Ký Hợp Đồng"]:::action
+            Pay["Thanh toán & Mở khóa"]:::action
+            Return["Yêu cầu Trả"]:::action
 
             Renter -- "User Role" --> Browse
             Renter -- "User Role" --> Booking
@@ -619,8 +619,8 @@
             subgraph Lender_Zone [Khu vực Chủ Sách - Lender]
             direction TB
             Lender((Lender)):::actor
-            Upload[Đăng sách lên]:::action
-            ViewOwn[Xem sách đã đăng]:::action
+            Upload["Đăng sách lên"]:::action
+            ViewOwn["Xem sách đã đăng"]:::action
 
             Lender -- "Lender Role" --> Upload
             Lender -- "Lender Role" --> ViewOwn
@@ -629,10 +629,10 @@
             subgraph Admin_Zone [Khu vực Quản Trị - Admin]
             direction TB
             Admin((Admin)):::actor
-            Verify[Duyệt sách lên sàn]:::adminAction
-            Approve[Duyệt đơn thuê (Thủ công)]:::adminAction
-            Confirm[Xác nhận Trả sách]:::adminAction
-            Monitor[Giám sát Hệ thống]:::adminAction
+            Verify["Duyệt sách lên sàn"]:::adminAction
+            Approve["Duyệt đơn thuê (Thủ công)"]:::adminAction
+            Confirm["Xác nhận Trả sách"]:::adminAction
+            Monitor["Giám sát Hệ thống"]:::adminAction
 
             Admin -- "Admin Role" --> Verify
             Admin -- "Admin Role" --> Approve
