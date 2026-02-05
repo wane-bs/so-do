@@ -630,7 +630,7 @@
             direction TB
             Admin((Admin)):::actor
             Verify[Duyệt sách lên sàn]:::adminAction
-            Approve[Duyệt đơn thuê (Manual)]:::adminAction
+            Approve[Duyệt đơn thuê (Thủ công)]:::adminAction
             Confirm[Xác nhận Trả sách]:::adminAction
             Monitor[Giám sát Hệ thống]:::adminAction
 
@@ -657,20 +657,20 @@
 
             subgraph Mocks [Dịch Vụ Giả Lập - Mock Services :4000]
             MockApp["mock-server/index.js"]:::mock
-            Legal["Legal Service<br />FPT eContract"]:::mock
-            IoT["IoT Service<br />Tuya Smart Lock"]:::mock
-            Bank["Banking Service<br />Casso Webhook"]:::mock
+            Legal["Dịch Vụ Pháp Lý<br />FPT eContract"]:::mock
+            IoT["Dịch Vụ IoT<br />Tuya Smart Lock"]:::mock
+            Bank["Dịch Vụ Ngân Hàng<br />Casso Webhook"]:::mock
             end
 
-            subgraph IPFS [Giả Lập IPFS - IPFS Simulator]
+            subgraph IPFS [Giả Lập IPFS - Trình Mô Phỏng IPFS]
             Images["images/*.jpg"]:::ipfs
             Meta["metadata/*.json"]:::ipfs
-            Route["/api/ipfs/:cid<br />(Proxy Mode)"]:::ipfs
+            Route["/api/ipfs/:cid<br />(Chế độ Proxy)"]:::ipfs
             end
 
-            MockApp -- "Hosting" --> Legal
-            MockApp -- "Hosting" --> IoT
-            MockApp -- "Hosting" --> Bank
+            MockApp -- "Chạy" --> Legal
+            MockApp -- "Chạy" --> IoT
+            MockApp -- "Chạy" --> Bank
 
             Legal -- cung cấp --> TermsHash
             IoT -- cung cấp --> Ticket/OTP
@@ -744,14 +744,14 @@
         <h3 style="color: #2980b9; margin-top: 20px;">10.1. Quy trình Quyết định (Decision Flow)</h3>
         <div class="mermaid">
             flowchart TD
-            Start([Người thuê ký hợp đồng<br />Terms Signed]) --> Gate0{Kiểm tra sách<br />Book Ready?}
+            Start([Người thuê ký hợp đồng<br />Đã Ký Điều Khoản]) --> Gate0{Kiểm tra sách<br />Sách Sẵn Sàng?}
 
             Gate0 -->|"status ≠ VERIFIED<br />hoặc isRented = true"| Reject1["REJECT<br />reasonCode:
             BOOK_NOT_AVAILABLE"]
-            Gate0 -->|"✓ Sách sẵn sàng"| CalcTrust["Tính TrustScore<br />base=50 +10*min(rentals,5)<br />-20*disputes
-            -10*late<br />clamp 0-100"]
+            Gate0 -->|"✓ Sách sẵn sàng"| CalcTrust["Tính TrustScore<br />base=50
+            +10*min(thuê_xong,5)<br />-20*tranh_chấp -10*trễ<br />giới hạn 0-100"]
 
-            CalcTrust --> GetInputs["Thu thập inputs:<br />• tier = book.riskTier (Default: C)<br />• band =
+            CalcTrust --> GetInputs["Thu thập inputs:<br />• tier = book.riskTier (Mặc định: C)<br />• band =
             HIGH/MED/LOW<br />• depositRatio = deposit/value"]
 
             GetInputs --> CheckTier{Tier nào?}
@@ -815,36 +815,36 @@
             Reject["🔴 REJECT = Từ chối"]
             end
 
-            subgraph TierC_Matrix [Tier C - Low Risk Book]
+            subgraph TierC_Matrix [Tier C - Sách Rủi Ro Thấp]
             direction LR
             TC_Title["<b>TIER C</b><br />(Sách rủi ro thấp)"]
-            TC1["Trust: HIGH<br />Deposit ≥30%<br />→ 🟢 AUTO"]
-            TC2["Trust: MED<br />Deposit ≥30%<br />→ 🟢 AUTO"]
-            TC3["Trust: LOW<br />Deposit ≥50%<br />→ 🟢 AUTO"]
-            TC4["Trust: LOW<br />Deposit &lt;50%<br />→ 🟡 REVIEW"]
+            TC1["Trust: CAO<br />Cọc ≥30%<br />→ 🟢 AUTO"]
+            TC2["Trust: TB<br />Cọc ≥30%<br />→ 🟢 AUTO"]
+            TC3["Trust: THẤP<br />Cọc ≥50%<br />→ 🟢 AUTO"]
+            TC4["Trust: THẤP<br />Cọc &lt;50%<br />→ 🟡 REVIEW"]
             end
 
-            subgraph TierB_Matrix [Tier B - Medium Risk Book]
+            subgraph TierB_Matrix [Tier B - Sách Rủi Ro Trung Bình]
             direction LR
             TB_Title["<b>TIER B</b><br />(Sách rủi ro trung bình)"]
-            TB1["Trust: HIGH<br />Deposit ≥30%<br />→ 🟢 AUTO"]
-            TB2["Trust: MED<br />Deposit ≥50%<br />→ 🟢 AUTO"]
-            TB3["Trust: MED<br />Deposit &lt;50%<br />→ 🟡 REVIEW"]
-            TB4["Trust: LOW<br />Deposit ≥70%<br />→ 🟡 REVIEW"]
-            TB5["Trust: LOW<br />Deposit &lt;70%<br />→ 🟠 MANUAL"]
+            TB1["Trust: CAO<br />Cọc ≥30%<br />→ 🟢 AUTO"]
+            TB2["Trust: TB<br />Cọc ≥50%<br />→ 🟢 AUTO"]
+            TB3["Trust: TB<br />Cọc &lt;50%<br />→ 🟡 REVIEW"]
+            TB4["Trust: THẤP<br />Cọc ≥70%<br />→ 🟡 REVIEW"]
+            TB5["Trust: THẤP<br />Cọc &lt;70%<br />→ 🟠 MANUAL"]
             end
 
-            subgraph TierA_Matrix [Tier A - High Risk Book]
+            subgraph TierA_Matrix [Tier A - Sách Rủi Ro Cao]
             direction LR
             TA_Title["<b>TIER A</b><br />(Sách rủi ro cao)"]
-            TA1["Trust: HIGH/MED<br />Bất kỳ deposit<br />→ 🟠 MANUAL"]
-            TA2["Trust: LOW<br />Bất kỳ deposit<br />→ 🔴 REJECT"]
+            TA1["Trust: CAO/TB<br />Bất kỳ mức cọc<br />→ 🟠 MANUAL"]
+            TA2["Trust: THẤP<br />Bất kỳ mức cọc<br />→ 🔴 REJECT"]
             end
 
             subgraph TrustCalc [Cách tính TrustScore]
             direction TB
-            TCalc["score = 50<br />+ 10 × min(completedRentals, 5)<br />- 20 × disputes<br />- 10 ×
-            lateReturns<br /><br />HIGH: ≥80<br />MED: 50-79<br />LOW: &lt;50"]
+            TCalc["Điểm = 50<br />+ 10 × min(thuê_xong, 5)<br />- 20 × tranh_chấp<br />- 10 × trả_muộn<br /><br />CAO:
+            ≥80<br />TB: 50-79<br />THẤP: &lt;50"]
             end
 
             %% Styles
