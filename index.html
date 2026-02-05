@@ -72,7 +72,7 @@
             subgraph User_Interaction [Lớp Tương Tác Người Dùng]
             direction TB
             Frontend["Frontend UI<br />React/FSD"]:::frontend
-            ExplorerUI["Explorer Page (Nuevo)<br />Dashboard/Logs"]:::explorer
+            ExplorerUI["Trang Explorer (Mới)<br />Dashboard/Logs"]:::explorer
             end
 
             subgraph System_Logic [Lớp Logic Hệ Thống]
@@ -83,28 +83,28 @@
             subgraph Blockchain_Core [Lớp Blockchain Cốt Lõi]
             direction TB
             Contracts["Smart Contracts<br />Hardhat Local"]:::blockchain
-            IPFS["IPFS Simulator<br />Local Storage"]:::blockchain
+            IPFS["IPFS Simulator<br />Lưu Trữ Cục Bộ"]:::blockchain
             end
 
             subgraph Third_Party [Dịch Vụ Bên Thứ 3]
             direction TB
-            Mocks["Mock Services<br />Legal, IoT, Payment"]:::external
+            Mocks["Mock Services<br />Pháp lý, IoT, Thanh toán"]:::external
             end
 
             %% Flows
-            Frontend -- "1. HTTP Request (JSON)" --> Backend
-            Backend -- "2. HTTP Response" --> Frontend
+            Frontend -- "1. Yêu cầu HTTP (JSON)" --> Backend
+            Backend -- "2. Phản hồi HTTP" --> Frontend
 
-            Backend -- "3. Ethers.js (Read/Write)" --> Contracts
-            Contracts -. "4. Events/Logs" .-> Backend
+            Backend -- "3. Ethers.js (Đọc/Ghi)" --> Contracts
+            Contracts -. "4. Sự kiện/Logs" .-> Backend
 
-            Backend -- "Local File I/O" --> IPFS
+            Backend -- "I/O File Cục Bộ" --> IPFS
 
-            Backend -- "API Calls" --> Mocks
+            Backend -- "Gọi API" --> Mocks
             Contracts -. "Chainlink Functions" .-> Mocks
 
-            ExplorerUI -- "Reads" --> Backend
-            ExplorerUI -- "JSON-RPC Query" --> Contracts
+            ExplorerUI -- "Đọc" --> Backend
+            ExplorerUI -- "Truy vấn JSON-RPC" --> Contracts
         </div>
     </div>
 
@@ -172,8 +172,8 @@
             VinaLibVault --|&gt; FunctionsClient
             VinaLibVault --|&gt; AutomationCompatibleInterface
             VinaLibVault --|&gt; Ownable
-            VinaLibVault ..&gt; BookAsset : manages status
-            VinaLibVault ..&gt; RentalAgreementSBT : mints logic
+            VinaLibVault ..&gt; BookAsset : quản lý trạng thái
+            VinaLibVault ..&gt; RentalAgreementSBT : logic đúc
 
             class SuChinToken {
             &lt;&lt;ERC-20&gt;&gt;
@@ -191,28 +191,28 @@
         <h3 style="color: #2980b9; margin-top: 20px;">3.1. Mạng lưới IPFS (IPFS Network Topology)</h3>
         <div class="mermaid">
             graph TB
-            subgraph "IPFS Network"
-            Node1[IPFS Node 1<br />Asia]
-            Node2[IPFS Node 2<br />Europe]
-            Node3[IPFS Node 3<br />America]
-            Node4[IPFS Node 4<br />Africa]
+            subgraph "Mạng Lưới IPFS"
+            Node1[Node IPFS 1<br />Châu Á]
+            Node2[Node IPFS 2<br />Châu Âu]
+            Node3[Node IPFS 3<br />Châu Mỹ]
+            Node4[Node IPFS 4<br />Châu Phi]
 
-            DHT[(Distributed<br />Hash Table)]
+            DHT[(Bảng Băm<br />Phân Tán)]
             end
 
-            User[End User] -->|Query CID| Node1
-            Node1 <-->|Peer Discovery| DHT
-                DHT -->|Returns Providers| Node1
+            User[Người Dùng Cuối] -->|Truy vấn CID| Node1
+            Node1 <-->|Khám Phá Peer| DHT
+                DHT -->|Trả Về Providers| Node1
 
-                Node1 <-.->|P2P Connection| Node2
-                    Node1 <-.->|P2P Connection| Node3
-                        Node2 <-.->|P2P Connection| Node4
-                            Node3 <-.->|P2P Connection| Node4
+                Node1 <-.->|Kết Nối P2P| Node2
+                    Node1 <-.->|Kết Nối P2P| Node3
+                        Node2 <-.->|Kết Nối P2P| Node4
+                            Node3 <-.->|Kết Nối P2P| Node4
 
-                                Node2 -->|Block Transfer| Node1
-                                Node3 -->|Block Transfer| Node1
+                                Node2 -->|Truyền Block| Node1
+                                Node3 -->|Truyền Block| Node1
 
-                                Node1 -->|Assembled Data| User
+                                Node1 -->|Dữ Liệu Đã Ghép| User
 
                                 classDef nodeStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
                                 classDef userStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
@@ -227,62 +227,62 @@
         <div class="mermaid">
             sequenceDiagram
             autonumber
-            participant User as User's IPFS Node
-            participant DHT as Distributed Hash Table
-            participant P1 as Provider Peer 1
-            participant P2 as Provider Peer 2
-            participant P3 as Provider Peer 3
+            participant User as Node IPFS Của Người Dùng
+            participant DHT as Bảng Băm Phân Tán (DHT)
+            participant P1 as Peer Cung Cấp 1
+            participant P2 as Peer Cung Cấp 2
+            participant P3 as Peer Cung Cấp 3
 
-            Note over User: User requests CID:<br />bafybei...
+            Note over User: Người dùng yêu cầu CID:<br />bafybei...
 
             User->>DHT: FIND_PROVIDERS(CID)
-            DHT->>DHT: Kademlia Lookup<br />(XOR Distance)
+            DHT->>DHT: Kademlia Lookup<br />(Khoảng cách XOR)
 
-            DHT-->>User: Provider List:<br />P1, P2, P3
+            DHT-->>User: Danh sách Provider:<br />P1, P2, P3
 
-            par Parallel Block Retrieval
+            par Lấy Block Song Song
             User->>P1: WANT_BLOCK(block_0)
             User->>P2: WANT_BLOCK(block_1)
             User->>P3: WANT_BLOCK(block_2)
             end
 
-            par Response
+            par Phản Hồi
             P1-->>User: BLOCK_DATA(block_0)
             P2-->>User: BLOCK_DATA(block_1)
             P3-->>User: BLOCK_DATA(block_2)
             end
 
-            User->>User: Verify Hashes<br />(SHA-256)
-            User->>User: Reassemble DAG
+            User->>User: Xác Thực Hash<br />(SHA-256)
+            User->>User: Lắp Ráp lại DAG
 
-            Note over User: Content Ready!
+            Note over User: Nội Dung Sẵn Sàng!
         </div>
 
         <h3 style="color: #2980b9; margin-top: 30px;">3.3. IPFS Gateway Architecture</h3>
         <div class="mermaid">
             graph LR
-            subgraph "Client Side"
-            Browser[Web Browser]
+            subgraph "Phía Client"
+            Browser[Trình Duyệt Web]
             end
 
-            subgraph "Gateway (HTTP ↔ IPFS Translator)"
-            GW[IPFS Gateway Server]
-            Node[Embedded IPFS Node]
-            Cache[HTTP Cache Layer]
+            subgraph "Gateway (Bộ chuyển đổi HTTP ↔ IPFS)"
+            GW[Máy Chủ Gateway IPFS]
+            Node[Node IPFS Nhúng]
+            Cache[Lớp Cache HTTP]
             end
 
-            subgraph "IPFS Network"
-            P2P[P2P Network<br />Global Peers]
+            subgraph "Mạng Lưới IPFS"
+            P2P[Mạng P2P<br />Peers Toàn Cầu]
             end
 
             Browser -->|"HTTP GET<br />https://gateway/ipfs/CID"| GW
-            GW -->|1. Check Cache| Cache
-            Cache -.->|Cache Miss| Node
-            Node -->|2. Fetch via Bitswap| P2P
-            P2P -->|3. Return Blocks| Node
-            Node -->|4. Assemble| GW
-            GW -->|"5. HTTP Response<br />+ Cache Headers"| Browser
-            Cache -.->|Cache Hit| GW
+            GW -->|1. Kiểm Tra Cache| Cache
+            Cache -.->|Không Thấy Cache| Node
+            Node -->|2. Lấy qua Bitswap| P2P
+            P2P -->|3. Trả Về Blocks| Node
+            Node -->|4. Lắp Ráp| GW
+            GW -->|"5. Phản Hồi HTTP<br />+ Cache Headers"| Browser
+            Cache -.->|Tìm Thấy Cache| GW
 
             classDef gateway fill:#fff3e0,stroke:#e65100,stroke-width:2px
             classDef ipfs fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
@@ -298,35 +298,35 @@
         <div class="mermaid">
             graph TB
             subgraph "Frontend (React/Next.js)"
-            UI["User Interface"]
-            UploadBtn["Upload Book Cover"]
-            DisplayImg["Display Image Component"]
+            UI["Giao diện Người dùng"]
+            UploadBtn["Nút Tải ảnh Bìa"]
+            DisplayImg["Component Hiển thị Ảnh"]
             end
 
             subgraph "Backend (Node.js)"
             API["Express Server"]
-            IPFSMod["IPFS Module<br />(Simulator Adapter)"]
-            LocalFS["Local Filesystem<br />/IPFS/storage"]
+            IPFSMod["Module IPFS<br />(Simulator Adapter)"]
+            LocalFS["Hệ Thống File Cục Bộ<br />/IPFS/storage"]
             end
 
             subgraph "Blockchain (Avalanche)"
             Contract["Smart Contract:<br />BookAsset.sol"]
-            Storage["Storage:<br />mapping bookId to CID"]
+            Storage["Lưu Trữ:<br />mapping bookId to CID"]
             end
 
-            UploadBtn -->|1. Select Image| API
-            API -->|2. Upload Stream| IPFSMod
-            IPFSMod -->|3. SHA-256 Hash| IPFSMod
-            IPFSMod -->|4. Save File| LocalFS
-            IPFSMod -->|5. Return CID| API
-            API -->|6. Store CID| Contract
-            Contract -->|7. Emit Event| Storage
+            UploadBtn -->|1. Chọn Ảnh| API
+            API -->|2. Luồng Tải Lên| IPFSMod
+            IPFSMod -->|3. Băm SHA-256| IPFSMod
+            IPFSMod -->|4. Lưu File| LocalFS
+            IPFSMod -->|5. Trả về CID| API
+            API -->|6. Lưu CID| Contract
+            Contract -->|7. Phát Sự Kiện| Storage
 
-            UI -->|8. Fetch Book Data| Contract
-            Contract -->|9. Return CID| UI
-            DisplayImg -->|10. Request /api/ipfs/:cid| API
-            API -->|11. Read File| LocalFS
-            API -->|12. Return Image Stream| DisplayImg
+            UI -->|8. Lấy Dữ Liệu Sách| Contract
+            Contract -->|9. Trả về CID| UI
+            DisplayImg -->|10. Yêu cầu /api/ipfs/:cid| API
+            API -->|11. Đọc File| LocalFS
+            API -->|12. Trả về Luồng Ảnh| DisplayImg
 
             classDef frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
             classDef backend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
@@ -343,44 +343,44 @@
         <div class="mermaid">
             sequenceDiagram
             autonumber
-            participant User as User Browser
-            participant GW as IPFS Gateway
-            participant IPFS as IPFS Network
-            participant Render as Browser Renderer
+            participant User as Trình Duyệt Người Dùng
+            participant GW as Gateway IPFS
+            participant IPFS as Mạng Lưới IPFS
+            participant Render as Bộ Render Trình Duyệt
 
             User->>GW: GET /ipfs/bafybei.../video.mp4
 
-            GW->>IPFS: Query Providers via DHT
-            IPFS-->>GW: Provider List
+            GW->>IPFS: Truy vấn Providers qua DHT
+            IPFS-->>GW: Danh sách Provider
 
-            GW->>IPFS: Fetch Root Block
-            IPFS-->>GW: Root Block (Metadata)
+            GW->>IPFS: Lấy Block Gốc
+            IPFS-->>GW: Block Gốc (Metadata)
 
-            Note over GW: Parse DAG structure:<br />- Total size<br />- Chunk list
+            Note over GW: Phân tách cấu trúc DAG:<br />- Tổng kích thước<br />- Danh sách Chunk
 
-            par Parallel Chunk Download
-            GW->>IPFS: Fetch Chunk 1
-            GW->>IPFS: Fetch Chunk 2
-            GW->>IPFS: Fetch Chunk 3
+            par Tải Chunk Song Song
+            GW->>IPFS: Lấy Chunk 1
+            GW->>IPFS: Lấy Chunk 2
+            GW->>IPFS: Lấy Chunk 3
             end
 
-            par Parallel Chunk Response
-            IPFS-->>GW: Chunk 1 Data
-            IPFS-->>GW: Chunk 2 Data
-            IPFS-->>GW: Chunk 3 Data
+            par Phản Hồi Chunk Song Song
+            IPFS-->>GW: Dữ liệu Chunk 1
+            IPFS-->>GW: Dữ liệu Chunk 2
+            IPFS-->>GW: Dữ liệu Chunk 3
             end
 
-            loop For Each Chunk
-            GW->>GW: Verify Hash<br />SHA-256(chunk) == expected_hash
+            loop Cho Mỗi Chunk
+            GW->>GW: Xác thực Hash<br />SHA-256(chunk) == expected_hash
             end
 
-            GW->>GW: Reassemble Chunks into File
+            GW->>GW: Lắp ráp Chunk thành File
 
             GW->>User: HTTP 200 OK<br />Content-Type: video/mp4<br />Content-Length: 10485760<br />[Stream Data]
 
-            User->>Render: Decode Video Stream
-            Render->>Render: H.264/H.265 Decoding
-            Render-->>User: Display Video
+            User->>Render: Giải mã Video Stream
+            Render->>Render: Giải mã H.264/H.265
+            Render-->>User: Hiển thị Video
         </div>
     </div>
 
@@ -395,7 +395,7 @@
             classDef internal fill:#fffde7,stroke:#fbc02d,stroke-width:1px;
 
             subgraph Bootstrapper [Khởi Động - Bootstrapper]
-            Server["server.js<br />Entry Point"]:::boot
+            Server["server.js<br />Điểm Đầu Vào"]:::boot
             end
 
             subgraph Modules [Các Module Nghiệp Vụ - Modules]
@@ -448,14 +448,14 @@
             subgraph App_Layer [Tầng Ứng Dụng - App Layer]
             App["App.tsx"]:::app
             Providers[Providers]:::app
-            Styles[Global Styles]:::app
+            Styles[Styles Toàn Cục]:::app
             end
 
             subgraph Pages_Layer [Tầng Trang - Pages Layer]
             Login[LoginPage]:::page
             Register[RegisterPage]:::page
             Home[HomePage]:::page
-            Explorer["Explorer Pages"]:::page
+            Explorer["Các Trang Explorer"]:::page
             Account[AccountPage]:::page
             Wallet[WalletPage]:::page
             RentOut[RentOutPage]:::page
@@ -517,74 +517,74 @@
             %% Giai đoạn 1
             rect rgb(240, 248, 255)
             note right of User: Bước 1: Thiết lập & Đăng sách (Setup & Listing)
-            User->>FE: Upload Book Info
-            FE->>BE: POST /api/books (Pending)
-            BE->>BE: Store in Memory
-            Admin->>FE: Review Listing (Owner Dashboard)
-            alt Verify (Approve)
+            User->>FE: Tải lên Thông Tin Sách
+            FE->>BE: POST /api/books (Chờ xử lý)
+            BE->>BE: Lưu vào Bộ Nhớ
+            Admin->>FE: Duyệt Đăng Tin (Dashboard Chủ Sách)
+            alt Xác Minh (Chấp thuận)
             FE->>BE: POST verify-listing
             BE->>SC: BookAsset.verifyForListing()
-            SC-->>BE: Event: BookVerified
-            BE-->>FE: Status -> VERIFIED
-            else Reject (Deny)
-            FE->>BE: POST reject-listing (Reason required)
-            BE->>BE: Update Status -> REJECTED
-            BE-->>FE: Notify Lender
+            SC-->>BE: Sự kiện: BookVerified
+            BE-->>FE: Trạng thái -> VERIFIED
+            else Từ Chối (Hủy)
+            FE->>BE: POST reject-listing (Cần lý do)
+            BE->>BE: Update Trạng thái -> REJECTED
+            BE-->>FE: Thông báo cho Người Cho Thuê
             end
             end
 
             %% Giai đoạn 2
             rect rgb(255, 248, 240)
             note right of User: Bước 2: Đặt thuê & Ký kết (Booking & Contracts)
-            User->>FE: Create Booking Request
+            User->>FE: Tạo Yêu cầu Thuê
             FE->>BE: POST /api/booking
-            BE->>Legal: Generate Contract Preview
-            Legal-->>BE: Returns previewId, termsHash
-            User->>FE: Review Contract (Preview)
-            User->>FE: Accept & Sign (Click Sign)
+            BE->>Legal: Tạo Xem Trước Hợp Đồng
+            Legal-->>BE: Trả về previewId, termsHash
+            User->>FE: Xem lại Hợp đồng (Xem trước)
+            User->>FE: Chấp thuận & Ký (Nhấn nút Ký)
             FE->>BE: POST /api/contracts/:id/accept
 
-            BE->>BE: Policy Engine Check (TrustScore)
+            BE->>BE: Kiểm tra Policy Engine (TrustScore)
             alt AUTO APPROVED
-            BE-->>FE: Status -> SIGNED_UNPAID
+            BE-->>FE: Trạng thái -> SIGNED_UNPAID
             else REVIEW NEEDED
-            BE-->>FE: Status -> SIGNED_PENDING_APPROVAL
-            Admin->>FE: Approve Rental Request (Manual)
-            FE->>BE: Approve Logic
-            BE-->>FE: Status -> SIGNED_UNPAID
+            BE-->>FE: Trạng thái -> SIGNED_PENDING_APPROVAL
+            Admin->>FE: Duyệt Yêu Cầu Thuê (Thủ công)
+            FE->>BE: Logic Duyệt
+            BE-->>FE: Trạng thái -> SIGNED_UNPAID
             end
             end
 
             %% Giai đoạn 3
             rect rgb(240, 255, 240)
             note right of User: Bước 3: Thanh toán & Đúc Token (Payment & Minting)
-            User->>FE: Pay via Wallet/Bank
-            FE->>BE: Payment Webhook/Signal
+            User->>FE: Thanh toán qua Ví/Ngân hàng
+            FE->>BE: Webhook Thanh toán/Tín hiệu
             BE->>SC: VinaLibVault.createRental(termsHash, pspRef)
             activate SC
-            SC->>SC: Check Verified Status
-            SC->>SC: Mint RentalAgreementSBT (To User)
+            SC->>SC: Kiểm tra Trạng thái Xác minh
+            SC->>SC: Đúc RentalAgreementSBT (Cho User)
             SC->>SC: BookAsset.setUser(User)
-            SC-->>BE: Event: RentalCreated
+            SC-->>BE: Sự kiện: RentalCreated
             deactivate SC
-            BE-->>FE: Rental Active (Unlock Device Available)
+            BE-->>FE: Thuê Đang Hoạt Động (Mở khóa thiết bị có sẵn)
             end
 
             %% Giai đoạn 4
             rect rgb(255, 240, 245)
             note right of User: Bước 4: Quy trình Trả sách (Return Process)
-            User->>FE: Request Return
-            FE->>BE: Send Return Request
+            User->>FE: Yêu cầu Trả
+            FE->>BE: Gửi Yêu Cầu Trả
             BE->>SC: VinaLibVault.requestReturn()
 
-            Admin->>FE: Confirm Physical Return
-            FE->>BE: Confirm Return Action
+            Admin->>FE: Xác nhận Trả Vật lý
+            FE->>BE: Xác nhận Hành động Trả
             BE->>SC: VinaLibVault.confirmReturn()
             activate SC
-            SC->>SC: Revoke User Rights
-            SC->>SC: Mark EvidencePack as Concluded
+            SC->>SC: Thu hồi Quyền Người Dùng
+            SC->>SC: Đánh dấu EvidencePack là Đã Kết Thúc
             deactivate SC
-            BE-->>FE: Status -> COMPLETED
+            BE-->>FE: Trạng thái -> COMPLETED
             end
         </div>
     </div>
@@ -698,7 +698,7 @@
             direction TB
             UI_Page["BookDetailPage.tsx"]:::ui
             UI_Comp["BookingModal.tsx"]:::ui
-            UI_Btn[Rent Button]:::ui
+            UI_Btn[Nút Thuê]:::ui
             UI_Page -- "Chứa" --> UI_Comp
             UI_Comp -- "Chứa" --> UI_Btn
             end
@@ -869,40 +869,40 @@
             participant Admin as Administrator
 
             Note over User,Admin: Trường hợp AUTO
-            User->>BE: Sign Terms
+            User->>BE: Ký Điều Khoản
             BE->>BE: Policy → AUTO
-            BE-->>User: Status: SIGNED_UNPAID<br />pickupDeadline: +60m
+            BE-->>User: Trạng thái: SIGNED_UNPAID<br />Hạn lấy: +60m
             Note over User: Người dùng thanh toán trong 60 phút
 
             rect rgb(255, 248, 220)
             Note over User,Admin: Trường hợp REVIEW
-            User->>BE: Sign Terms
+            User->>BE: Ký Điều Khoản
             BE->>BE: Policy → REVIEW
-            BE-->>User: Status: SIGNED_PENDING_APPROVAL<br />reviewDeadline: +30m
+            BE-->>User: Trạng thái: SIGNED_PENDING_APPROVAL<br />Hạn xem xét: +30m
             Worker->>BE: Chạy runReview() mỗi 5 phút
-            alt Review Passed
+            alt Duyệt Thành Công
             BE->>BE: reviewState = PASSED
-            BE-->>User: Status: SIGNED_UNPAID
-            else Review Failed hoặc Timeout &gt; 30m
+            BE-->>User: Trạng thái: SIGNED_UNPAID
+            else Duyệt Thất Bại hoặc Timeout &gt; 30m
             BE->>BE: reviewState = FAILED
-            BE-->>User: Status: EXPIRED/REJECTED
-            BE->>BE: Release book hold + Refund nếu đã trả tiền
+            BE-->>User: Trạng thái: EXPIRED/REJECTED
+            BE->>BE: Giải phóng giữ sách + Hoàn tiền nếu đã trả tiền
             end
             end
 
             rect rgb(255, 240, 245)
             Note over User,Admin: Trường hợp MANUAL
-            User->>BE: Sign Terms
+            User->>BE: Ký Điều Khoản
             BE->>BE: Policy → MANUAL
-            BE-->>User: Status: SIGNED_PENDING_APPROVAL<br />approveDeadline: +2h
-            Admin->>BE: Approve Request
-            BE->>BE: Check deadline chưa qua
-            alt Approved trước deadline
-            BE-->>User: Status: SIGNED_UNPAID
+            BE-->>User: Trạng thái: SIGNED_PENDING_APPROVAL<br />Hạn duyệt: +2h
+            Admin->>BE: Duyệt Yêu Cầu
+            BE->>BE: Kiểm tra hạn chưa qua
+            alt Duyệt trước deadline
+            BE-->>User: Trạng thái: SIGNED_UNPAID
             else Timeout &gt; 2h (không có hành động)
-            Worker->>BE: Expire booking
-            BE-->>User: Status: EXPIRED
-            BE->>BE: Release hold + Notify
+            Worker->>BE: Booking Hết Hạn
+            BE-->>User: Trạng thái: EXPIRED
+            BE->>BE: Giải phóng giữ + Thông báo
             end
             end
         </div>
@@ -923,17 +923,17 @@
             subgraph Inputs [Dữ liệu Đầu vào]
             Template["Template Hợp Đồng<br />(Markdown + Variables)"]
             Data["Metadata Thuê<br />(User, Book, Dates)"]
-            Config["Config JSON<br />(Defaults, Fees)"]
+            Config["Config JSON<br />(Mặc định, Phí)"]
             end
 
-            subgraph Generator [Contract Generator Module]
-            Fill["Điền biến (Fill Placeholders)"]
+            subgraph Generator [Module Tạo Hợp Đồng]
+            Fill["Điền biến (Lấp đầy vị trí)"]
             Hash["Tính TermsHash (SHA-256)"]
             UUID["Tạo Preview ID (UUIDv4)"]
             end
 
             subgraph TempStore [Bộ nhớ đệm - TempStore.js]
-            Store["In-Memory Map<br />Key: PreviewID<br />Value: Content + Hash"]
+            Store["In-Memory Map<br />Key: PreviewID<br />Value: Nội dung + Hash"]
             end
 
             subgraph Outputs [Kết quả & Hành Động]
@@ -965,15 +965,15 @@
         <p class="description">Công cụ tra cứu dữ liệu on-chain, sử dụng Service Layer để gọi JSON-RPC.</p>
         <div class="mermaid">
             graph LR
-            subgraph Frontend [Explorer Interface]
-            ExplorerUI["Explorer Pages<br />(Dashboard, Events)"]
+            subgraph Frontend [Giao diện Explorer]
+            ExplorerUI["Các Trang Explorer<br />(Dashboard, Sự kiện)"]
             Service["ExplorerService<br />(ethers.JsonRpcProvider)"]
             end
 
-            subgraph Node [Blockchain Node Interface]
+            subgraph Node [Giao diện Node Blockchain]
             RPC["JSON-RPC Interface<br />Port: 8545"]
-            Ledger["Block Data<br />(Chain State)"]
-            Events["Event Logs<br />(Topic Filters)"]
+            Ledger["Dữ Liệu Block<br />(Trạng thái Chuỗi)"]
+            Events["Logs Sự Kiện<br />(Bộ lọc Topic)"]
             end
 
             ExplorerUI --> Service
