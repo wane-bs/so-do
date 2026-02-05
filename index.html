@@ -597,8 +597,8 @@
             graph LR
             %% Styles
             classDef actor fill:#f9f9f9,stroke:#333,stroke-width:2px;
-            classDef action fill:#e1f5fe,stroke:#0288d1,stroke-width:1px,rx:5,ry:5;
-            classDef adminAction fill:#ffebee,stroke:#c62828,stroke-width:1px,rx:5,ry:5;
+            classDef action fill:#e1f5fe,stroke:#0288d1,stroke-width:1px;
+            classDef adminAction fill:#ffebee,stroke:#c62828,stroke-width:1px;
 
             subgraph Renter_Zone [Khu vực Người Thuê - Renter]
             direction TB
@@ -746,19 +746,20 @@
             flowchart TD
             Start([Người thuê ký hợp đồng<br />Terms Signed]) --> Gate0{Kiểm tra sách<br />Book Ready?}
 
-            Gate0 -->|"status ≠ VERIFIED<br />hoặc isRented = true"| Reject1[REJECT<br />reasonCode: BOOK_NOT_AVAILABLE]
+            Gate0 -->|"status ≠ VERIFIED<br />hoặc isRented = true"| Reject1["REJECT<br />reasonCode:
+            BOOK_NOT_AVAILABLE"]
             Gate0 -->|"✓ Sách sẵn sàng"| CalcTrust["Tính TrustScore<br />base=50 +10*min(rentals,5)<br />-20*disputes
             -10*late<br />clamp 0-100"]
 
-            CalcTrust --> GetInputs[Thu thập inputs:<br />• tier = book.riskTier (Default: C)<br />• band =
-            HIGH/MED/LOW<br />• depositRatio = deposit/value]
+            CalcTrust --> GetInputs["Thu thập inputs:<br />• tier = book.riskTier (Default: C)<br />• band =
+            HIGH/MED/LOW<br />• depositRatio = deposit/value"]
 
             GetInputs --> CheckTier{Tier nào?}
 
             %% Tier C Branch
             CheckTier -->|"Tier C<br />(Low Risk)"| TierC{TrustBand?}
-            TierC -->|"LOW & Ratio &lt; 50%"| ReviewC[REVIEW<br />reasonCode:
-            TIER_C_LOW_TRUST_NEED_REVIEW<br />deadline: +30m]
+            TierC -->|"LOW & Ratio &lt; 50%"| ReviewC["REVIEW<br />reasonCode:
+            TIER_C_LOW_TRUST_NEED_REVIEW<br />deadline: +30m"]
             TierC -->|"Else"| AutoC[AUTO<br />reasonCode: TIER_C_OK<br />deadline: +60m]
 
             %% Tier B Branch
