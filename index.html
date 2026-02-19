@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sơ đồ Hệ thống VinaLib-Vault</title>
+    <title>Sơ đồ Hệ thống VinaLib-Vault v3.0</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,9 +52,9 @@
 </head>
 
 <body>
-    <h1>Sơ đồ Hệ thống VinaLib-Vault</h1>
-    <p style="text-align: center;">Tài liệu visual hóa cấu trúc hệ thống mô phỏng (Mock Architecture) cho VinaLib-Vault.
-    </p>
+    <h1>Sơ đồ Hệ thống VinaLib-Vault v3.0</h1>
+    <p style="text-align: center;">Tài liệu visual hóa cấu trúc hệ thống mô phỏng (Mock Architecture) cho VinaLib-Vault
+        (Cập nhật 2026-02-19).</p>
 
     <!-- 1. Architecture -->
     <div class="diagram-container">
@@ -165,7 +165,8 @@
             class VinaLibVault {
             &lt;&lt;Ledger&gt;&gt;
             +activeRentals (mapping)
-            +createRental()
+            +rentalToSBT (mapping - v3.0)
+            +createRental(..., existingSbtId)
             +requestReturn()
             +confirmReturn()
             }
@@ -173,7 +174,7 @@
             VinaLibVault --|&gt; AutomationCompatibleInterface
             VinaLibVault --|&gt; Ownable
             VinaLibVault ..&gt; BookAsset : quản lý trạng thái
-            VinaLibVault ..&gt; RentalAgreementSBT : logic đúc
+            VinaLibVault ..&gt; RentalAgreementSBT : record SBT ID
 
             class SuChinToken {
             &lt;&lt;ERC-20&gt;&gt;
@@ -414,14 +415,14 @@
 
             Server -- "Gắn route /api/auth" --> Identity
             Server -- "Gắn route /api/books" --> Book
-            Server -- "Gắn route /api/booking" --> Rental
-            Server -- "Gắn route /api/admin" --> Admin
+            Server -- "Gắn route /api/booking (Auth)" --> Rental
+            Server -- "Gắn route /api/admin (Auth)" --> Admin
             Server -- "Gắn route /api/webhook" --> Payment
             Server -- "Gắn route /api/devices" --> IoT
             Server -- "Gắn route /ipfs" --> IPFS_Mod
             Server -- "Gắn route /api/config" --> Config
-            Server -- "Gắn route /api/policy" --> Policy
-            Server -- "Gắn route /api/contracts" --> Legal
+            Server -- "Gắn route /api/policy (Auth)" --> Policy
+            Server -- "Gắn route /api/contracts (Auth)" --> Legal
 
             Identity -- Chứa --> I_Ctrl["Controller"]:::internal
             Identity -- Chứa --> I_Store["Store"]:::internal
@@ -463,6 +464,7 @@
             Settings[Settings]:::page
             Owner[OwnerDashboard]:::page
             Lender[LenderDashboard]:::page
+            ContractPreview[ContractPreviewPage]:::page
             end
 
             subgraph Shared_Layer [Tầng Dùng Chung - Shared Layer]
@@ -560,10 +562,10 @@
             note right of User: Bước 3: Thanh toán & Đúc Token (Payment & Minting)
             User->>FE: Thanh toán qua Ví/Ngân hàng
             FE->>BE: Webhook Thanh toán/Tín hiệu
-            BE->>SC: VinaLibVault.createRental(termsHash, pspRef)
+            BE->>SC: VinaLibVault.createRental(..., existingSbtId)
             activate SC
             SC->>SC: Kiểm tra Trạng thái Xác minh
-            SC->>SC: Đúc RentalAgreementSBT (Cho User)
+            SC->>SC: Ghi nhận SBT ID (đã đúc)
             SC->>SC: BookAsset.setUser(User)
             SC-->>BE: Sự kiện: RentalCreated
             deactivate SC
@@ -720,11 +722,11 @@
             SC_Vault["VinaLibVault.sol"]:::sc
             SC_Func["createRental()"]:::sc
             SC_Asset["BookAsset.sol<br />setUser"]:::sc
-            SC_SBT["RentalSBT.sol<br />mint"]:::sc
+            SC_SBT["RentalSBT.sol<br />(Reference)"]:::sc
 
             SC_Vault -- "Chứa hàm" --> SC_Func
             SC_Func -- "Gọi sang" --> SC_Asset
-            SC_Func -- "Gọi sang" --> SC_SBT
+            SC_Func -- "Ghi nhận ID" --> SC_SBT
             end
 
             %% Mappings (Arrows)
@@ -986,6 +988,268 @@
 
             class ExplorerUI,Service ui;
             class RPC,Ledger,Events node;
+        </div>
+    </div>
+
+    <!-- 13. BookAsset State Machine (from EXTRACTED_LOGIC.md) -->
+    <div class="diagram-container">
+        <h2>13. State Machine — BookAsset (On-Chain)</h2>
+        <p class="description">Máy trạng thái NFT sách trên blockchain. Nguồn: EXTRACTED_LOGIC.md (Workflow
+            Master_PhanTichChuyenGiao).</p>
+        <div class="mermaid">
+            stateDiagram-v2
+            [*] --> PendingVerification : safeMint()
+            PendingVerification --> Verified : verifyForListing()\n(onlyOwner)
+            Verified --> Rented : markAsRented()\n(owner OR rentalContract)
+            Rented --> Verified : verifyReturn(notDamaged)
+            Rented --> PendingVerification : verifyReturn(isDamaged)
+
+            note right of PendingVerification
+            Sách mới tải lên
+            chờ Admin duyệt
+            end note
+
+            note right of Verified
+            Sẵn sàng cho thuê
+            verifyPreRent() kiểm tra
+            end note
+
+            note right of Rented
+            Đang được thuê
+            ERC-4907 setUser active
+            end note
+        </div>
+    </div>
+
+    <!-- 14. EvidencePack State Machine (from EXTRACTED_LOGIC.md) -->
+    <div class="diagram-container">
+        <h2>14. State Machine — EvidencePack (VinaLibVault On-Chain)</h2>
+        <p class="description">Trạng thái bằng chứng thuê trên smart contract. Nguồn: EXTRACTED_LOGIC.md.</p>
+        <div class="mermaid">
+            stateDiagram-v2
+            [*] --> Active : createRental()\n+ Ghi nhận existingSbtId
+            Active --> ReturnRequested : requestReturn()\n(renter OR owner)
+            ReturnRequested --> Concluded : confirmReturn()\n(onlyOwner)
+            Active --> Concluded : confirmReturn()\n(Admin shortcut)
+
+            note right of Active
+            EvidencePack lưu:
+            termsHash, version,
+            pspRef, renter, timestamp
+            end note
+
+            note right of Concluded
+            isDamaged flag
+            notes ghi chú
+            Sách trả về Verified/Pending
+            end note
+        </div>
+    </div>
+
+    <!-- 15. Booking State Machine (Off-Chain) — from EXTRACTED_LOGIC.md -->
+    <div class="diagram-container">
+        <h2>15. State Machine — Booking (Off-Chain, 7 Trạng Thái)</h2>
+        <p class="description">Vòng đời đầy đủ của một đơn thuê trong backend. Nguồn: EXTRACTED_LOGIC.md +
+            BÁO_CÁO_PHÂN_TÍCH_V3.md.</p>
+        <div class="mermaid">
+            flowchart TD
+            classDef pending fill:#fff9c4,stroke:#f57f17,stroke-width:2px;
+            classDef signed fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+            classDef paid fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+            classDef done fill:#e0f7fa,stroke:#006064,stroke-width:2px;
+            classDef rejected fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
+
+            Start([POST /api/booking]) --> PA[PENDING_ACCEPTANCE]:::pending
+
+            PA --> |"User xem preview → accept"| PolicyCheck{Policy Engine}
+
+            PolicyCheck --> |REJECT| Deleted[Booking DELETED]:::rejected
+            PolicyCheck --> |AUTO| SU[SIGNED_UNPAID<br />+ SBT minted]:::signed
+            PolicyCheck --> |REVIEW / MANUAL| SPA[SIGNED_PENDING_APPROVAL]:::pending
+
+            SPA --> |"Admin approve"| SU
+            SPA --> |"Timeout (30m/2h)"| Expired[EXPIRED]:::rejected
+
+            SU --> |"pay-wallet"| PAID[PAID<br />+ Blockchain sync]:::paid
+
+            PAID --> |"return-request"| RR[RETURN_REQUESTED]:::pending
+
+            RR --> |"Admin confirm-return"| COMPLETED[COMPLETED<br />Settlement done]:::done
+        </div>
+    </div>
+
+    <!-- 16. Dòng Tiền Escrow (from EXTRACTED_LOGIC.md) -->
+    <div class="diagram-container">
+        <h2>16. Dòng Tiền Off-Chain Escrow</h2>
+        <p class="description">Luồng tiền từ Renter → Escrow → Revenue (Platform 10%) + PendingPayout (Lender 90%).
+            Nguồn: EXTRACTED_LOGIC.md.</p>
+        <div class="mermaid">
+            flowchart LR
+            classDef renter fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+            classDef escrow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+            classDef platform fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+            classDef lender fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+
+            RB["Renter Balance<br />(Ví người thuê)"]:::renter
+            ESC["Escrow Balance<br />(Giữ tạm)"]:::escrow
+            REV["Revenue Balance<br />(Platform 10%)"]:::platform
+            PP["PendingPayout<br />(Lender 90%)"]:::lender
+            LB["Lender Balance<br />(Ví chủ sách)"]:::lender
+
+            RB -->|"pay-wallet<br />price = book.price"| ESC
+            ESC -->|"confirm-return<br />platformFee = price × 10%"| REV
+            ESC -->|"confirm-return<br />lenderAmount = price × 90%"| PP
+            PP -->|"Admin payout<br />/api/admin/payout"| LB
+        </div>
+    </div>
+
+    <!-- 17. Gap Tracker — from BÁO_CÁO_PHÂN_TÍCH_V3.md -->
+    <div class="diagram-container">
+        <h2>17. Gap Analysis Tracker (v3.0)</h2>
+        <p class="description">8 gaps phát hiện từ Workflow Master_PhanTichChuyenGiao, 7 đã fix. Nguồn:
+            BÁO_CÁO_PHÂN_TÍCH_V3.md.</p>
+        <div class="mermaid">
+            flowchart LR
+            classDef fixed fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+            classDef deferred fill:#fff9c4,stroke:#f57f17,stroke-width:2px;
+            classDef high fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
+            classDef med fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+            classDef low fill:#e0f7fa,stroke:#006064,stroke-width:2px;
+
+            subgraph HIGH_PRIORITY ["🔴 HIGH Priority"]
+            direction TB
+            CF1["CF-1: Duplicate SBT Mint<br />VinaLibVault.sol<br />blockchain.adapter.js"]:::high
+            CF2["CF-2: Private Key Hardcode<br />.env + .env.example<br />.gitignore"]:::high
+            end
+
+            subgraph MED_PRIORITY ["🟡 MEDIUM Priority"]
+            direction TB
+            CF3["CF-3: Book ID ↔ Token ID<br />contracts-data.json<br />resolveTokenId()"]:::med
+            CF4["CF-4: Chainlink Placeholder<br />checkUpkeep thực sự<br />fulfillRequest emit event"]:::med
+            IR3["IR-3: Frontend Preview<br />ContractPreviewPage<br />contracts.ts API"]:::med
+            IR4["IR-4: Auth Middleware<br />verifyUser on routes<br />server.js"]:::med
+            end
+
+            subgraph LOW_PRIORITY ["🟢 LOW Priority"]
+            direction TB
+            P21["P2-1: In-memory Store<br />(Deferred → Phase 2)"]:::deferred
+            P22["P2-2: On-chain Status<br />chain-status route<br />useBookOnChainStatus"]:::low
+            end
+
+            CF1 --> FIXED1[✅ Fixed]:::fixed
+            CF2 --> FIXED2[✅ Fixed]:::fixed
+            CF3 --> FIXED3[✅ Fixed]:::fixed
+            CF4 --> FIXED4[✅ Fixed]:::fixed
+            IR3 --> FIXED5[✅ Fixed]:::fixed
+            IR4 --> FIXED6[✅ Fixed]:::fixed
+            P21 --> DEFER[⏳ Phase 2]:::deferred
+            P22 --> FIXED7[✅ Fixed]:::fixed
+        </div>
+    </div>
+
+    <!-- 18. Component Classification (from BASE_DESIGN_SPEC.md) -->
+    <div class="diagram-container">
+        <h2>18. Phân Loại Thành Phần (KEEP / REFACTOR / REPLACE)</h2>
+        <p class="description">Phân loại từng component để chuẩn bị Phase 2. Nguồn: BASE_DESIGN_SPEC.md (Workflow
+            Master_PhanTichChuyenGiao).</p>
+        <div class="mermaid">
+            graph TD
+            classDef keep fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+            classDef refactor fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+            classDef replace fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
+            classDef defer fill:#e0e0e0,stroke:#616161,stroke-width:1px,stroke-dasharray: 5 5;
+
+            subgraph Smart_Contracts ["Smart Contracts"]
+            direction TB
+            BA["BookAsset.sol<br />ERC-4907 chuẩn"]:::keep
+            SBT["RentalAgreementSBT.sol<br />Cần thêm bookTokenId"]:::refactor
+            VLV["VinaLibVault.sol<br />Tách SBT, sửa Chainlink"]:::refactor
+            ERC["ERC4907.sol"]:::keep
+            SCT["SuChinToken.sol"]:::defer
+            end
+
+            subgraph Backend ["Backend Modules"]
+            direction TB
+            PE["PolicyEngine<br />Logic clean, 24 tests"]:::keep
+            LG["Legal/contract.generator<br />Preview + termsHash"]:::keep
+            RC["Rental/controller<br />Chuẩn hóa ID mapping"]:::refactor
+            BCA["blockchain.adapter<br />env var, resolveTokenId"]:::refactor
+            ADM["Admin/controller<br />SBT tracking"]:::refactor
+            STO["Shared/store.js<br />→ PostgreSQL (Phase 2)"]:::replace
+            end
+
+            subgraph Frontend ["Frontend"]
+            direction TB
+            FP["20 Pages<br />+ ContractPreviewPage"]:::refactor
+            FC["Config/API client"]:::keep
+            FH["useBookOnChainStatus<br />(New hook)"]:::keep
+            end
+
+            subgraph Legend ["Chú Giải"]
+            direction LR
+            L1["✅ KEEP"]:::keep
+            L2["🔄 REFACTOR"]:::refactor
+            L3["❌ REPLACE"]:::replace
+            L4["⬜ DEFER"]:::defer
+            end
+        </div>
+    </div>
+
+    <!-- 19. Blockchain Sync Flow (from EXTRACTED_LOGIC.md) -->
+    <div class="diagram-container">
+        <h2>19. Luồng Blockchain Sync & SBT Evidence (v3.0)</h2>
+        <p class="description">Thứ tự mint SBT và lưu Evidence on-chain sau khi fix CF-1. Nguồn: EXTRACTED_LOGIC.md +
+            BÁO_CÁO_PHÂN_TÍCH_V3.md.</p>
+        <div class="mermaid">
+            sequenceDiagram
+            autonumber
+
+            participant User as Renter
+            participant BE as Backend
+            participant SBT as RentalAgreementSBT
+            participant Vault as VinaLibVault
+            participant Book as BookAsset
+
+            rect rgb(240, 248, 255)
+            Note over User,Book: Bước 1: Ký hợp đồng (Contract Accept)
+            User->>BE: POST /contracts/:id/accept
+            BE->>BE: PolicyEngine.decide()
+            alt AUTO
+            BE->>SBT: safeMint(renter, termsHash)
+            SBT-->>BE: SBT ID #1
+            BE->>BE: booking.rentalSBTId = #1
+            BE-->>User: SIGNED_UNPAID
+            else MANUAL/REVIEW
+            BE-->>User: SIGNED_PENDING_APPROVAL
+            Note over BE: Admin approve → mint SBT tương tự
+            end
+            end
+
+            rect rgb(240, 255, 240)
+            Note over User,Book: Bước 2: Thanh toán (Payment Sync)
+            User->>BE: POST /booking/:code/pay-wallet
+            BE->>BE: Trừ balance → Escrow
+            BE->>Vault: createRental(..., existingSbtId=#1)
+            activate Vault
+            Vault->>Vault: Lưu EvidencePack
+            Vault->>Vault: rentalToSBT[bookId] = #1
+            Vault->>Book: verifyPreRent + setUser
+            Vault-->>BE: Event: RentalCreated
+            deactivate Vault
+            BE-->>User: PAID + txHash
+            end
+
+            rect rgb(255, 240, 245)
+            Note over User,Book: Bước 3: Trả sách
+            User->>BE: return-request
+            BE->>Vault: requestReturn(bookId, deliveryHash)
+            Note over Vault: checkUpkeep() phát hiện ReturnRequested
+            BE->>Vault: confirmReturn(bookId, isDamaged)
+            Vault->>Book: verifyReturn(isDamaged)
+            Vault-->>BE: Event: RentalConcluded
+            BE->>BE: Settlement Escrow
+            BE-->>User: COMPLETED
+            end
         </div>
     </div>
 
