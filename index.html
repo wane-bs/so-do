@@ -175,12 +175,12 @@
         <div class="mermaid">
             graph TB
             subgraph "Mạng Lưới IPFS"
-            Node1[Node IPFS 1<br />Châu Á]
-            Node2[Node IPFS 2<br />Châu Âu]
-            Node3[Node IPFS 3<br />Châu Mỹ]
-            Node4[Node IPFS 4<br />Châu Phi]
+            Node1["Node IPFS 1<br />Châu Á"]
+            Node2["Node IPFS 2<br />Châu Âu"]
+            Node3["Node IPFS 3<br />Châu Mỹ"]
+            Node4["Node IPFS 4<br />Châu Phi"]
 
-            DHT[(Bảng Băm<br />Phân Tán)]
+            DHT[("Bảng Băm<br />Phân Tán")]
             end
 
             User[Người Dùng Cuối] -->|Truy vấn CID| Node1
@@ -255,7 +255,7 @@
             end
 
             subgraph "Mạng Lưới IPFS"
-            P2P[Mạng P2P<br />Peers Toàn Cầu]
+            P2P["Mạng P2P<br />Peers Toàn Cầu"]
             end
 
             Browser -->|"HTTP GET<br />https://gateway/ipfs/CID"| GW
@@ -378,17 +378,17 @@
             classDef current fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
             classDef future fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-            subgraph The_Core [Nguồn Chân Lý Duy Nhất (Single Source of Truth)]
+            subgraph The_Core ["Nguồn Chân Lý Duy Nhất (Single Source of Truth)"]
             SC["Smart Contracts (.sol)<br />Chứa toàn bộ Business Flows & State Machine"]:::core
             end
 
-            subgraph Current_Role [Trạng thái Hiện Tại (Hỗ trợ Off-chain)]
+            subgraph Current_Role ["Trạng thái Hiện Tại (Hỗ trợ Off-chain)"]
             UI["Phục vụ UI (Bootstrapper)<br />Chạy & phân phối React DApp"]:::current
             Adapter["Adapter & Middleware<br />Giao tiếp Mock API, eContract, IoT"]:::current
             OffChain["Xử lý Off-chain<br />Policy Engine, Contract Generator, IPFS Sim"]:::current
             end
 
-            subgraph Future_Role [Định hướng Tương Lai (True DApp)]
+            subgraph Future_Role ["Định hướng Tương Lai (True DApp)"]
             Thin["Backend mỏng dần<br />Frontend tương tác trực tiếp RPC/Ethers.js"]:::future
             Microservices["Microservices/Workers<br />Lắng nghe On-chain Events (vd: gửi Email)"]:::future
             Decentralized["Phi tập trung lưu trữ<br />IPFS và On-chain thay thế DB tập trung"]:::future
@@ -662,7 +662,7 @@
             subgraph Frontend_Layer [Tầng Giao Diện - React DApp]
             direction TB
             UI_Page["BookDetailPage.tsx"]:::ui
-            UI_Btn[Nút Thuê MetaMask]:::ui
+            UI_Btn["Nút Thuê MetaMask"]:::ui
             UI_Page -- "Chứa" --> UI_Btn
             end
 
@@ -697,7 +697,7 @@
         <h3 style="color: #2980b9; margin-top: 20px;">10.1. Quy trình Quyết định (Decision Flow)</h3>
         <div class="mermaid">
             flowchart TD
-            Start([Người thuê ký hợp đồng<br />Đã Ký Điều Khoản]) --> Gate0{Kiểm tra sách<br />Sách Sẵn Sàng?}
+            Start(["Người thuê ký hợp đồng<br />Đã Ký Điều Khoản"]) --> Gate0{"Kiểm tra sách<br />Sách Sẵn Sàng?"}
 
             Gate0 -->|"status ≠ VERIFIED<br />hoặc isRented = true"| Reject1["REJECT<br />reasonCode:
             BOOK_NOT_AVAILABLE"]
@@ -707,42 +707,42 @@
             CalcTrust --> GetInputs["Thu thập inputs:<br />• tier = book.riskTier (Mặc định: C)<br />• band =
             HIGH/MED/LOW<br />• depositRatio = deposit/value"]
 
-            GetInputs --> CheckTier{Tier nào?}
+            GetInputs --> CheckTier{"Tier nào?"}
 
             %% Tier C Branch
-            CheckTier -->|"Tier C<br />(Low Risk)"| TierC{TrustBand?}
+            CheckTier -->|"Tier C<br />(Low Risk)"| TierC{"TrustBand?"}
             TierC -->|"LOW & Ratio &lt; 50%"| ReviewC["REVIEW<br />reasonCode:
             TIER_C_LOW_TRUST_NEED_REVIEW<br />deadline: +30m"]
-            TierC -->|"Else"| AutoC[AUTO<br />reasonCode: TIER_C_OK<br />deadline: +60m]
+            TierC -->|"Else"| AutoC["AUTO<br />reasonCode: TIER_C_OK<br />deadline: +60m"]
 
             %% Tier B Branch
-            CheckTier -->|"Tier B<br />(Medium Risk)"| TierB{TrustBand?}
-            TierB -->|"HIGH"| AutoB1[AUTO<br />reasonCode: TIER_B_HIGH_TRUST]
-            TierB -->|"MED"| DepositB1{Ratio?}
-            DepositB1 -->|"≥ 50%"| AutoB2[AUTO<br />reasonCode: TIER_B_MED_TRUST_DEPOSIT_OK]
-            DepositB1 -->|"&lt; 50%"| ReviewB[REVIEW<br />reasonCode: TIER_B_MED_TRUST_REVIEW]
-            TierB -->|"LOW"| DepositB2{Ratio?}
-            DepositB2 -->|"≥ 70%"| ReviewB2[REVIEW<br />reasonCode: TIER_B_LOW_TRUST_HIGH_DEPOSIT]
-            DepositB2 -->|"&lt; 70%"| ManualB[MANUAL<br />reasonCode: TIER_B_LOW_TRUST_MANUAL]
+            CheckTier -->|"Tier B<br />(Medium Risk)"| TierB{"TrustBand?"}
+            TierB -->|"HIGH"| AutoB1["AUTO<br />reasonCode: TIER_B_HIGH_TRUST"]
+            TierB -->|"MED"| DepositB1{"Ratio?"}
+            DepositB1 -->|"≥ 50%"| AutoB2["AUTO<br />reasonCode: TIER_B_MED_TRUST_DEPOSIT_OK"]
+            DepositB1 -->|"&lt; 50%"| ReviewB["REVIEW<br />reasonCode: TIER_B_MED_TRUST_REVIEW"]
+            TierB -->|"LOW"| DepositB2{"Ratio?"}
+            DepositB2 -->|"≥ 70%"| ReviewB2["REVIEW<br />reasonCode: TIER_B_LOW_TRUST_HIGH_DEPOSIT"]
+            DepositB2 -->|"&lt; 70%"| ManualB["MANUAL<br />reasonCode: TIER_B_LOW_TRUST_MANUAL"]
 
             %% Tier A Branch
-            CheckTier -->|"Tier A<br />(High Risk)"| TierA{TrustBand?}
-            TierA -->|"LOW"| RejectA[REJECT<br />reasonCode: TIER_A_LOW_TRUST_REJECT]
-            TierA -->|"Other"| ManualA[MANUAL<br />reasonCode: TIER_A_MANUAL<br />deadline: +2h]
+            CheckTier -->|"Tier A<br />(High Risk)"| TierA{"TrustBand?"}
+            TierA -->|"LOW"| RejectA["REJECT<br />reasonCode: TIER_A_LOW_TRUST_REJECT"]
+            TierA -->|"Other"| ManualA["MANUAL<br />reasonCode: TIER_A_MANUAL<br />deadline: +2h"]
 
             %% Final states
-            AutoC --> StatusAuto[Status: SIGNED_UNPAID<br />approvalMode: AUTO]
+            AutoC --> StatusAuto["Status: SIGNED_UNPAID<br />approvalMode: AUTO"]
             AutoB1 --> StatusAuto
             AutoB2 --> StatusAuto
 
-            ReviewC --> StatusReview[Status: SIGNED_PENDING_APPROVAL<br />approvalMode: REVIEW]
+            ReviewC --> StatusReview["Status: SIGNED_PENDING_APPROVAL<br />approvalMode: REVIEW"]
             ReviewB --> StatusReview
             ReviewB2 --> StatusReview
 
-            ManualB --> StatusManual[Status: SIGNED_PENDING_APPROVAL<br />approvalMode: MANUAL]
+            ManualB --> StatusManual["Status: SIGNED_PENDING_APPROVAL<br />approvalMode: MANUAL"]
             ManualA --> StatusManual
 
-            Reject1 --> StatusReject[Status: REJECTED]
+            Reject1 --> StatusReject["Status: REJECTED"]
             RejectA --> StatusReject
 
             %% Styles
@@ -1010,22 +1010,22 @@
             classDef done fill:#e0f7fa,stroke:#006064,stroke-width:2px;
             classDef rejected fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
 
-            Start([POST /api/booking]) --> PA[PENDING_ACCEPTANCE]:::pending
+            Start(["POST /api/booking"]) --> PA[PENDING_ACCEPTANCE]:::pending
 
-            PA --> |"User xem preview → accept"| PolicyCheck{Policy Engine}
+            PA --> |"User xem preview → accept"| PolicyCheck{"Policy Engine"}
 
-            PolicyCheck --> |REJECT| Deleted[Booking DELETED]:::rejected
-            PolicyCheck --> |AUTO| SU[SIGNED_UNPAID<br />+ SBT minted]:::signed
+            PolicyCheck --> |REJECT| Deleted["Booking DELETED"]:::rejected
+            PolicyCheck --> |AUTO| SU["SIGNED_UNPAID<br />+ SBT minted"]:::signed
             PolicyCheck --> |REVIEW / MANUAL| SPA[SIGNED_PENDING_APPROVAL]:::pending
 
             SPA --> |"Admin approve"| SU
             SPA --> |"Timeout (30m/2h)"| Expired[EXPIRED]:::rejected
 
-            SU --> |"pay-wallet"| PAID[PAID<br />+ Blockchain sync]:::paid
+            SU --> |"pay-wallet"| PAID["PAID<br />+ Blockchain sync"]:::paid
 
             PAID --> |"return-request"| RR[RETURN_REQUESTED]:::pending
 
-            RR --> |"Admin confirm-return"| COMPLETED[COMPLETED<br />Settlement done]:::done
+            RR --> |"Admin confirm-return"| COMPLETED["COMPLETED<br />Settlement done"]:::done
         </div>
     </div>
 
