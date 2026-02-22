@@ -68,18 +68,18 @@
             classDef blockchain fill:#fff3e0,stroke:#e65100,stroke-width:2px;
             classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
 
-            subgraph Web_Interaction [Lớp Web3 DApp]
+            subgraph Web_Interaction ["Lớp Web3 DApp"]
             direction TB
             Frontend["Frontend React SDK<br />Web3Provider / ethers.js"]:::frontend
             end
 
-            subgraph Blockchain_Core [Lớp Blockchain Cốt Lõi (Hardhat Local)]
+            subgraph Blockchain_Core ["Lớp Blockchain Cốt Lõi (Hardhat Local)"]
             direction TB
             Contracts["Smart Contracts (EVM)<br />(VinaLibVault, BookAsset)"]:::blockchain
             IPFS["IPFS Simulator<br />Hình ảnh & Metadata"]:::blockchain
             end
 
-            subgraph Third_Party [Dịch Vụ Bên Thứ 3]
+            subgraph Third_Party ["Dịch Vụ Bên Thứ 3"]
             direction TB
             Mocks["Mock API<br />Tạm ngưng / Legacy"]:::external
             end
@@ -369,7 +369,7 @@
 
     <!-- 4. Backend -->
     <div class="diagram-container">
-        <h2>4. Modules Backend (VSA)</h2>
+        <h2>4. Định vị vai trò cho backend</h2>
         <p class="description">Tuân thủ Vertical Slice Architecture. Mỗi module là một lát cắt độc lập.</p>
         <div class="mermaid">
             graph TD
@@ -1038,101 +1038,11 @@
         </div>
     </div>
 
-    <!-- 17. Gap Tracker — from BÁO_CÁO_PHÂN_TÍCH_V3.md -->
+
+
+    <!-- 17. Blockchain Sync Flow (from EXTRACTED_LOGIC.md) -->
     <div class="diagram-container">
-        <h2>17. Gap Analysis Tracker (v3.0)</h2>
-        <p class="description">8 gaps phát hiện từ Workflow Master_PhanTichChuyenGiao, 7 đã fix. Nguồn:
-            BÁO_CÁO_PHÂN_TÍCH_V3.md.</p>
-        <div class="mermaid">
-            flowchart LR
-            classDef fixed fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
-            classDef deferred fill:#fff9c4,stroke:#f57f17,stroke-width:2px;
-            classDef high fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
-            classDef med fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-            classDef low fill:#e0f7fa,stroke:#006064,stroke-width:2px;
-
-            subgraph HIGH_PRIORITY ["🔴 HIGH Priority"]
-            direction TB
-            CF1["CF-1: Duplicate SBT Mint<br />VinaLibVault.sol<br />blockchain.adapter.js"]:::high
-            CF2["CF-2: Private Key Hardcode<br />.env + .env.example<br />.gitignore"]:::high
-            end
-
-            subgraph MED_PRIORITY ["🟡 MEDIUM Priority"]
-            direction TB
-            CF3["CF-3: Book ID ↔ Token ID<br />contracts-data.json<br />resolveTokenId()"]:::med
-            CF4["CF-4: Chainlink Placeholder<br />checkUpkeep thực sự<br />fulfillRequest emit event"]:::med
-            IR3["IR-3: Frontend Preview<br />ContractPreviewPage<br />contracts.ts API"]:::med
-            IR4["IR-4: Auth Middleware<br />verifyUser on routes<br />server.js"]:::med
-            end
-
-            subgraph LOW_PRIORITY ["🟢 LOW Priority"]
-            direction TB
-            P21["P2-1: In-memory Store<br />(Deferred → Phase 2)"]:::deferred
-            P22["P2-2: On-chain Status<br />chain-status route<br />useBookOnChainStatus"]:::low
-            end
-
-            CF1 --> FIXED1[✅ Fixed]:::fixed
-            CF2 --> FIXED2[✅ Fixed]:::fixed
-            CF3 --> FIXED3[✅ Fixed]:::fixed
-            CF4 --> FIXED4[✅ Fixed]:::fixed
-            IR3 --> FIXED5[✅ Fixed]:::fixed
-            IR4 --> FIXED6[✅ Fixed]:::fixed
-            P21 --> DEFER[⏳ Phase 2]:::deferred
-            P22 --> FIXED7[✅ Fixed]:::fixed
-        </div>
-    </div>
-
-    <!-- 18. Component Classification (from BASE_DESIGN_SPEC.md) -->
-    <div class="diagram-container">
-        <h2>18. Phân Loại Thành Phần (KEEP / REFACTOR / REPLACE)</h2>
-        <p class="description">Phân loại từng component để chuẩn bị Phase 2. Nguồn: BASE_DESIGN_SPEC.md (Workflow
-            Master_PhanTichChuyenGiao).</p>
-        <div class="mermaid">
-            graph TD
-            classDef keep fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
-            classDef refactor fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-            classDef replace fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
-            classDef defer fill:#e0e0e0,stroke:#616161,stroke-width:1px,stroke-dasharray: 5 5;
-
-            subgraph Smart_Contracts ["Smart Contracts"]
-            direction TB
-            BA["BookAsset.sol<br />ERC-4907 chuẩn"]:::keep
-            SBT["RentalAgreementSBT.sol<br />Cần thêm bookTokenId"]:::refactor
-            VLV["VinaLibVault.sol<br />Tách SBT, sửa Chainlink"]:::refactor
-            ERC["ERC4907.sol"]:::keep
-            SCT["SuChinToken.sol"]:::defer
-            end
-
-            subgraph Backend ["Backend Modules"]
-            direction TB
-            PE["PolicyEngine<br />Logic clean, 24 tests"]:::keep
-            LG["Legal/contract.generator<br />Preview + termsHash"]:::keep
-            RC["Rental/controller<br />Chuẩn hóa ID mapping"]:::refactor
-            BCA["blockchain.adapter<br />env var, resolveTokenId"]:::refactor
-            ADM["Admin/controller<br />SBT tracking"]:::refactor
-            STO["Shared/store.js<br />→ PostgreSQL (Phase 2)"]:::replace
-            end
-
-            subgraph Frontend ["Frontend"]
-            direction TB
-            FP["20 Pages<br />+ ContractPreviewPage"]:::refactor
-            FC["Config/API client"]:::keep
-            FH["useBookOnChainStatus<br />(New hook)"]:::keep
-            end
-
-            subgraph Legend ["Chú Giải"]
-            direction LR
-            L1["✅ KEEP"]:::keep
-            L2["🔄 REFACTOR"]:::refactor
-            L3["❌ REPLACE"]:::replace
-            L4["⬜ DEFER"]:::defer
-            end
-        </div>
-    </div>
-
-    <!-- 19. Blockchain Sync Flow (from EXTRACTED_LOGIC.md) -->
-    <div class="diagram-container">
-        <h2>19. Luồng Blockchain Sync & SBT Evidence (v3.0)</h2>
+        <h2>17. Luồng Blockchain Sync & SBT Evidence (v3.0)</h2>
         <p class="description">Thứ tự mint SBT và lưu Evidence on-chain sau khi fix CF-1. Nguồn: EXTRACTED_LOGIC.md +
             BÁO_CÁO_PHÂN_TÍCH_V3.md.</p>
         <div class="mermaid">
