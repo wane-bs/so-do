@@ -370,16 +370,32 @@
     <!-- 4. Backend -->
     <div class="diagram-container">
         <h2>4. Định vị vai trò cho backend</h2>
-        <p class="description">Tuân thủ Vertical Slice Architecture. Mỗi module là một lát cắt độc lập.</p>
+        <p class="description">Backend đã chuyển từ trung tâm điều phối logic sang vai trò hỗ trợ Off-chain, nhường vị
+            trí cốt lõi cho Smart Contracts.</p>
         <div class="mermaid">
             graph TD
-            classDef boot fill:#eeeeee,stroke:#616161,stroke-width:2px;
-            classDef module fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-            classDef internal fill:#fffde7,stroke:#fbc02d,stroke-width:1px;
+            classDef core fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+            classDef current fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+            classDef future fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-            subgraph Bootstrapper [Legacy Backend/Express]
-            Server["[Đã rút gọn trong Giai đoạn 4]<br />Chỉ chạy UI DApp"]:::boot
+            subgraph The_Core [Nguồn Chân Lý Duy Nhất (Single Source of Truth)]
+            SC["Smart Contracts (.sol)<br />Chứa toàn bộ Business Flows & State Machine"]:::core
             end
+
+            subgraph Current_Role [Trạng thái Hiện Tại (Hỗ trợ Off-chain)]
+            UI["Phục vụ UI (Bootstrapper)<br />Chạy & phân phối React DApp"]:::current
+            Adapter["Adapter & Middleware<br />Giao tiếp Mock API, eContract, IoT"]:::current
+            OffChain["Xử lý Off-chain<br />Policy Engine, Contract Generator, IPFS Sim"]:::current
+            end
+
+            subgraph Future_Role [Định hướng Tương Lai (True DApp)]
+            Thin[Backend mỏng dần<br />Frontend tương tác trực tiếp RPC/Ethers.js]:::future
+            Microservices[Microservices/Workers<br />Lắng nghe On-chain Events (vd: gửi Email)]:::future
+            Decentralized[Phi tập trung lưu trữ<br />IPFS và On-chain thay thế DB tập trung]:::future
+            end
+
+            The_Core -. "Backend thu hẹp lại xung quanh lõi" .-> Current_Role
+            Current_Role -. "Tiến tới phân tán hoàn toàn" .-> Future_Role
         </div>
     </div>
 
