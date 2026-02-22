@@ -67,44 +67,26 @@
             classDef backend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
             classDef blockchain fill:#fff3e0,stroke:#e65100,stroke-width:2px;
             classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
-            classDef explorer fill:#e0f7fa,stroke:#006064,stroke-width:2px;
 
-            subgraph User_Interaction [Lớp Tương Tác Người Dùng]
+            subgraph Web_Interaction [Lớp Web3 DApp]
             direction TB
-            Frontend["Frontend UI<br />React/FSD"]:::frontend
-            ExplorerUI["Trang Explorer (Mới)<br />Dashboard/Logs"]:::explorer
+            Frontend["Frontend React SDK<br />Web3Provider / ethers.js"]:::frontend
             end
 
-            subgraph System_Logic [Lớp Logic Hệ Thống]
+            subgraph Blockchain_Core [Lớp Blockchain Cốt Lõi (Hardhat Local)]
             direction TB
-            Backend["Backend API<br />Express/VSA"]:::backend
-            end
-
-            subgraph Blockchain_Core [Lớp Blockchain Cốt Lõi]
-            direction TB
-            Contracts["Smart Contracts<br />Hardhat Local"]:::blockchain
-            IPFS["IPFS Simulator<br />Lưu Trữ Cục Bộ"]:::blockchain
+            Contracts["Smart Contracts (EVM)<br />(VinaLibVault, BookAsset)"]:::blockchain
+            IPFS["IPFS Simulator<br />Hình ảnh & Metadata"]:::blockchain
             end
 
             subgraph Third_Party [Dịch Vụ Bên Thứ 3]
             direction TB
-            Mocks["Mock Services<br />Pháp lý, IoT, Thanh toán"]:::external
+            Mocks["Mock API<br />Tạm ngưng / Legacy"]:::external
             end
 
             %% Flows
-            Frontend -- "1. Yêu cầu HTTP (JSON)" --> Backend
-            Backend -- "2. Phản hồi HTTP" --> Frontend
-
-            Backend -- "3. Ethers.js (Đọc/Ghi)" --> Contracts
-            Contracts -. "4. Sự kiện/Logs" .-> Backend
-
-            Backend -- "I/O File Cục Bộ" --> IPFS
-
-            Backend -- "Gọi API" --> Mocks
-            Contracts -. "Chainlink Functions" .-> Mocks
-
-            ExplorerUI -- "Đọc" --> Backend
-            ExplorerUI -- "Truy vấn JSON-RPC" --> Contracts
+            Frontend -- "Giao dịch MetaMask (Write) / RPC (Read)" --> Contracts
+            Frontend -- "Lưu/Đọc ảnh bằng CIDv1" --> IPFS
         </div>
     </div>
 
@@ -395,43 +377,9 @@
             classDef module fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
             classDef internal fill:#fffde7,stroke:#fbc02d,stroke-width:1px;
 
-            subgraph Bootstrapper [Khởi Động - Bootstrapper]
-            Server["server.js<br />Điểm Đầu Vào"]:::boot
+            subgraph Bootstrapper [Legacy Backend/Express]
+            Server["[Đã rút gọn trong Giai đoạn 4]<br />Chỉ chạy UI DApp"]:::boot
             end
-
-            subgraph Modules [Các Module Nghiệp Vụ - Modules]
-            direction TB
-            Identity[Identity Module]:::module
-            Book[Book Module]:::module
-            Rental[Rental Module]:::module
-            Admin[Admin Module]:::module
-            Payment[Payment Module]:::module
-            IoT[IoT Module]:::module
-            IPFS_Mod[IPFS Module]:::module
-            Config[Config Module]:::module
-            Policy[Policy Engine Module]:::module
-            Legal[Legal Module]:::module
-            end
-
-            Server -- "Gắn route /api/auth" --> Identity
-            Server -- "Gắn route /api/books" --> Book
-            Server -- "Gắn route /api/booking (Auth)" --> Rental
-            Server -- "Gắn route /api/admin (Auth)" --> Admin
-            Server -- "Gắn route /api/webhook" --> Payment
-            Server -- "Gắn route /api/devices" --> IoT
-            Server -- "Gắn route /ipfs" --> IPFS_Mod
-            Server -- "Gắn route /api/config" --> Config
-            Server -- "Gắn route /api/policy (Auth)" --> Policy
-            Server -- "Gắn route /api/contracts (Auth)" --> Legal
-
-            Identity -- Chứa --> I_Ctrl["Controller"]:::internal
-            Identity -- Chứa --> I_Store["Store"]:::internal
-
-            Rental -- "Sử dụng" --> Policy
-            Rental -- "Sử dụng" --> Legal
-
-            VSA_Note["QUY TẮC VSA: Không có Service Layer (Phase 1)<br />Shared Store cho Cross-Module Data"]:::internal
-            Rental ~~~ VSA_Note
         </div>
     </div>
 
@@ -692,29 +640,19 @@
             graph LR
             %% Styles
             classDef ui fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-            classDef api fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
             classDef sc fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-            classDef action fill:#fff,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5;
+            classDef middleware fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-            subgraph Frontend_Layer [Tầng Giao Diện - Frontend]
+            subgraph Frontend_Layer [Tầng Giao Diện - React DApp]
             direction TB
             UI_Page["BookDetailPage.tsx"]:::ui
-            UI_Comp["BookingModal.tsx"]:::ui
-            UI_Btn[Nút Thuê]:::ui
-            UI_Page -- "Chứa" --> UI_Comp
-            UI_Comp -- "Chứa" --> UI_Btn
+            UI_Btn[Nút Thuê MetaMask]:::ui
+            UI_Page -- "Chứa" --> UI_Btn
             end
 
-            subgraph Backend_Layer [Tầng API - Backend]
+            subgraph Provider_Layer [Tầng Middleware - SDK]
             direction TB
-            API_Route["POST /api/booking"]:::api
-            API_Ctrl["RentalController.js<br />createBooking"]:::api
-            API_Adapter["BlockchainAdapter.js<br />createRentalOnChain"]:::api
-            API_Pay["PaymentController.js<br />webhook"]:::api
-
-            API_Route -- "Xử lý bởi" --> API_Ctrl
-            API_Pay -- "Kích hoạt Sync" --> API_Ctrl
-            API_Ctrl -- "Sử dụng Adapter" --> API_Adapter
+            EthersJS["ContractService.ts<br />(Ký Transaction bằng Wallet)"]:::middleware
             end
 
             subgraph Blockchain_Layer [Tầng Hợp Đồng - Smart Contracts]
@@ -722,17 +660,14 @@
             SC_Vault["VinaLibVault.sol"]:::sc
             SC_Func["createRental()"]:::sc
             SC_Asset["BookAsset.sol<br />setUser"]:::sc
-            SC_SBT["RentalSBT.sol<br />(Reference)"]:::sc
 
             SC_Vault -- "Chứa hàm" --> SC_Func
             SC_Func -- "Gọi sang" --> SC_Asset
-            SC_Func -- "Ghi nhận ID" --> SC_SBT
             end
 
             %% Mappings (Arrows)
-            UI_Btn -- "1. Bấm thuê" --> API_Route
-            API_Ctrl -. "2. Đợi thanh toán" .- API_Pay
-            API_Adapter -- "3. Gọi Ethers.js" --> SC_Func
+            UI_Btn -- "1. Yêu cầu Confirm" --> EthersJS
+            EthersJS -- "2. Phát TX kèm msg.value" --> SC_Func
         </div>
     </div>
 
