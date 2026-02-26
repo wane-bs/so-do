@@ -90,6 +90,59 @@
         </div>
     </div>
 
+    <!-- 1.1 Các Bên Tham Gia -->
+    <div class="diagram-container">
+        <h2 id="section-1-1" style="color: #2980b9; margin-top: 30px;">1.1 Các Bên Tham Gia Hệ Thống (System Participants)</h2>
+        <p class="description">Sơ đồ tương tác giữa các thực thể quy trình và hạ tầng kỹ thuật trong luồng thuê sách.</p>
+        <div class="mermaid">
+            graph TD
+            classDef actor fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+            classDef admin fill:#ffebee,stroke:#c62828,stroke-width:2px;
+            classDef onchain fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+            classDef offchain fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+            classDef auto fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+            classDef physical fill:#eceff1,stroke:#607d8b,stroke-width:2px;
+
+            subgraph "Thực Thể Người Dùng"
+                Renter(["🧍 Khách Hàng (Renter)<br>Tương tác qua Web3 UI"]):::actor
+                Admin(["👑 Quản Trị Viên (Admin)<br>Sở hữu thư viện & sách"]):::admin
+            end
+
+            subgraph "Hạ Tầng Phi Tập Trung (Decentralized Core)"
+                BC[("⛓️ Mạng Blockchain<br>(EVM L1/L2)<br>Tính toán & Sổ cái bất biến")]:::onchain
+                IPFS[("📦 Mạng IPFS<br>Lưu trữ phi tập trung lớn")]:::onchain
+                SC["📜 Smart Contracts<br>(NFT Sách, Hợp đồng thuê)"]:::onchain
+                BC --- SC
+            end
+            
+            subgraph "Hệ Thống Tự Động & Hỗ Trợ (Hybrid Layer)"
+                Backend["🖥️ Backend (Worker)<br>Đồng bộ dữ liệu Off-chain"]:::offchain
+                Chainlink["⚙️ Chainlink Automation<br>Oracles tự động hóa"]:::auto
+            end
+
+            subgraph "Thực Thể Vật Lý"
+                IoT["🔒 Thiết Bị IoT<br>(Smart Lock / RFID)"]:::physical
+                Book["📖 Sách Vật Lý"]:::physical
+            end
+
+            %% Flows
+            Renter -- "1. Tự ký & Khởi tạo thuê (createRental)" --> SC
+            Admin -- "2. Duyệt sách (verifyForListing)<br>Xác nhận trả (confirmReturn)" --> SC
+            
+            SC -- "Lưu trữ bằng chứng (CID)" --> IPFS
+            Renter -- "Đọc nội dung/bìa sách" --> IPFS
+            
+            Backend -- "Lắng nghe Sự kiện On-chain" --> SC
+            Backend -- "Phản hồi API Giao diện nhanh" --> Renter
+            
+            Chainlink -- "3. Giám sát quá hạn (checkUpkeep)<br>Kích hoạt thu hồi (performUpkeep)" --> SC
+            
+            IoT -. "4. Mở khóa khi Hợp đồng Active" .-> SC
+            Backend -. "Xử lý tín hiệu Mở khóa" .-> IoT
+            IoT -- "Bảo vệ" --> Book
+        </div>
+    </div>
+
     <!-- 2. Smart Contracts -->
     <div class="diagram-container">
         <h2>2. Hợp Đồng Thông Minh (Smart Contracts)</h2>
