@@ -92,8 +92,10 @@
 
     <!-- 1.1 Các Bên Tham Gia -->
     <div class="diagram-container">
-        <h2 id="section-1-1" style="color: #2980b9; margin-top: 30px;">1.1 Các Bên Tham Gia Hệ Thống (System Participants)</h2>
-        <p class="description">Sơ đồ tương tác giữa các thực thể quy trình và hạ tầng kỹ thuật trong luồng thuê sách.</p>
+        <h2 id="section-1-1" style="color: #2980b9; margin-top: 30px;">1.1 Các Bên Tham Gia Hệ Thống (System
+            Participants)</h2>
+        <p class="description">Sơ đồ tương tác giữa các thực thể quy trình và hạ tầng kỹ thuật trong luồng thuê sách.
+        </p>
         <div class="mermaid">
             graph TD
             classDef actor fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
@@ -104,39 +106,39 @@
             classDef physical fill:#eceff1,stroke:#607d8b,stroke-width:2px;
 
             subgraph "Thực Thể Người Dùng"
-                Renter(["🧍 Khách Hàng (Renter)<br>Tương tác qua Web3 UI"]):::actor
-                Admin(["👑 Quản Trị Viên (Admin)<br>Sở hữu thư viện & sách"]):::admin
+            Renter(["🧍 Khách Hàng (Renter)<br>Tương tác qua Web3 UI"]):::actor
+            Admin(["👑 Quản Trị Viên (Admin)<br>Sở hữu thư viện & sách"]):::admin
             end
 
             subgraph "Hạ Tầng Phi Tập Trung (Decentralized Core)"
-                BC[("⛓️ Mạng Blockchain<br>(EVM L1/L2)<br>Tính toán & Sổ cái bất biến")]:::onchain
-                IPFS[("📦 Mạng IPFS<br>Lưu trữ phi tập trung lớn")]:::onchain
-                SC["📜 Smart Contracts<br>(NFT Sách, Hợp đồng thuê)"]:::onchain
-                BC --- SC
+            BC[("⛓️ Mạng Blockchain<br>(EVM L1/L2)<br>Tính toán & Sổ cái bất biến")]:::onchain
+            IPFS[("📦 Mạng IPFS<br>Lưu trữ phi tập trung lớn")]:::onchain
+            SC["📜 Smart Contracts<br>(NFT Sách, Hợp đồng thuê)"]:::onchain
+            BC --- SC
             end
-            
+
             subgraph "Hệ Thống Tự Động & Hỗ Trợ (Hybrid Layer)"
-                Backend["🖥️ Backend (Worker)<br>Đồng bộ dữ liệu Off-chain"]:::offchain
-                Chainlink["⚙️ Chainlink Automation<br>Oracles tự động hóa"]:::auto
+            Backend["🖥️ Backend (Worker)<br>Đồng bộ dữ liệu Off-chain"]:::offchain
+            Chainlink["⚙️ Chainlink Automation<br>Oracles tự động hóa"]:::auto
             end
 
             subgraph "Thực Thể Vật Lý"
-                IoT["🔒 Thiết Bị IoT<br>(Smart Lock / RFID)"]:::physical
-                Book["📖 Sách Vật Lý"]:::physical
+            IoT["🔒 Thiết Bị IoT<br>(Smart Lock / RFID)"]:::physical
+            Book["📖 Sách Vật Lý"]:::physical
             end
 
             %% Flows
             Renter -- "1. Tự ký & Khởi tạo thuê (createRental)" --> SC
             Admin -- "2. Duyệt sách (verifyForListing)<br>Xác nhận trả (confirmReturn)" --> SC
-            
+
             SC -- "Lưu trữ bằng chứng (CID)" --> IPFS
             Renter -- "Đọc nội dung/bìa sách" --> IPFS
-            
+
             Backend -- "Lắng nghe Sự kiện On-chain" --> SC
             Backend -- "Phản hồi API Giao diện nhanh" --> Renter
-            
+
             Chainlink -- "3. Giám sát quá hạn (checkUpkeep)<br>Kích hoạt thu hồi (performUpkeep)" --> SC
-            
+
             IoT -. "4. Mở khóa khi Hợp đồng Active" .-> SC
             Backend -. "Xử lý tín hiệu Mở khóa" .-> IoT
             IoT -- "Bảo vệ" --> Book
@@ -146,76 +148,169 @@
     <!-- 2. Smart Contracts -->
     <div class="diagram-container">
         <h2>2. Hợp Đồng Thông Minh (Smart Contracts)</h2>
-        <p class="description">Chi tiết các Contract và mối quan hệ kế thừa/tương tác.</p>
+        <p class="description">Được đồng bộ hóa chuẩn xác theo kết quả phân tích hệ thống (Không có dòng tiền chia sẻ
+            On-chain, SBT pre-mint từ Backend).</p>
         <div class="mermaid">
-            classDiagram
-            class Ownable {
-            +owner()
-            +renounceOwnership()
-            +transferOwnership()
-            }
-            class Pausable {
-            +paused()
-            +pause()
-            +unpause()
-            }
-            class ERC721 {
-            +balanceOf()
-            +ownerOf()
-            +transferFrom()
-            }
-            class ERC4907 {
-            +setUser(tokenId, user, expires)
-            +userOf(tokenId)
-            +userExpires(tokenId)
-            }
-            class FunctionsClient {
-            +sendRequest()
-            }
-            class AutomationCompatibleInterface {
-            +checkUpkeep()
-            +performUpkeep()
-            }
+            graph TB
+            %% Định nghĩa Style
+            classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+            classDef func fill:#ffe0b2,stroke:#ef6c00,stroke-width:1px;
+            classDef state fill:#ffcc80,stroke:#e65100,stroke-width:1px;
 
-            class BookAsset {
-            &lt;&lt;ERC-4907&gt;&gt;
-            +safeMint(to, cid)
-            +verifyForListing()
-            +verifyPreRent()
-            +verifyReturn()
-            }
-            BookAsset --|&gt; ERC4907
-            BookAsset --|&gt; Ownable
-            BookAsset --|&gt; Pausable
+            subgraph Externals["Các Đối Tượng Ngoài Hợp Đồng"]
+            User["Người dùng (Renter/Lender)"]
+            Admin["Quản trị/Hệ thống"]
+            Backend["Backend (Worker)"]
+            Chainlink["Chainlink Automation"]
+            end
 
-            class RentalAgreementSBT {
-            &lt;&lt;Soulbound&gt;&gt;
-            +rentalTerms (mapping)
-            -_update() [Overrides transfer]
-            }
-            RentalAgreementSBT --|&gt; ERC721
-            RentalAgreementSBT --|&gt; Ownable
-            note for RentalAgreementSBT "Không thể chuyển nhượng (Soulbound)"
+            subgraph VinaLibVault["Hợp Đồng: VinaLibVault.sol"]
+            Vault_create["createRental"]
+            Vault_reqRet["requestReturn"]
+            Vault_confRet["confirmReturn"]
+            Vault_cancel["cancelListing"]
+            Vault_claim["claimCollateral"]
+            Vault_check["checkUpkeep"]
+            Vault_perform["performUpkeep"]
+            Vault_state[("EvidencePack State")]
+            end
 
-            class VinaLibVault {
-            &lt;&lt;Ledger&gt;&gt;
-            +activeRentals (mapping)
-            +rentalToSBT (mapping - v3.0)
-            +createRental(..., existingSbtId)
-            +requestReturn()
-            +confirmReturn()
-            }
-            VinaLibVault --|&gt; FunctionsClient
-            VinaLibVault --|&gt; AutomationCompatibleInterface
-            VinaLibVault --|&gt; Ownable
-            VinaLibVault ..&gt; BookAsset : quản lý trạng thái
-            VinaLibVault ..&gt; RentalAgreementSBT : record SBT ID
+            subgraph BookAsset["Hợp Đồng: BookAsset.sol"]
+            BA_mint["safeMint"]
+            BA_verify["verifyForListing"]
+            BA_preRent["verifyPreRent"]
+            BA_verifyRet["verifyReturn"]
+            BA_setUser["setUser (ERC4907)"]
+            BA_state[("Book Status & NFT")]
+            end
 
-            class SuChinToken {
-            &lt;&lt;ERC-20&gt;&gt;
-            +mint()
-            }
-            SuChinToken --|&gt; Ownable
+            subgraph RentalAgreementSBT["Hợp Đồng: RentalAgreementSBT.sol"]
+            SBT_mint["safeMint"]
+            SBT_update["_update (Chặn Transfer)"]
+            SBT_state[("SBT Record")]
+            end
+
+            User -->|1. Tạo NFT Sách| BA_mint
+            Admin -->|2. Cấp phép| BA_verify
+            User -->|3. Khởi tạo thuê| Vault_create
+            User -->|4. Báo cáo trả sách| Vault_reqRet
+            Admin -->|5. Xác nhận trả/Hủy vé| Vault_confRet
+            Admin -->|Xử lý vi phạm| Vault_claim
+            Admin -->|Hủy khi chưa thuê| Vault_cancel
+            Backend -->|Pre-mint SBT| SBT_mint
+            Chainlink -->|Giám sát thời hạn| Vault_check
+            Chainlink -->|Tự động kết thúc| Vault_perform
+
+            BA_mint -.-> BA_state
+            BA_verify -.-> BA_state
+            BA_preRent -.-> BA_state
+            BA_verifyRet -.-> BA_state
+            BA_setUser -.-> BA_state
+
+            Vault_create -.-> Vault_state
+            Vault_reqRet -.-> Vault_state
+            Vault_confRet -.-> Vault_state
+            Vault_cancel -.-> Vault_state
+            Vault_claim -.-> Vault_state
+
+            SBT_mint -.-> SBT_update
+            SBT_update -.-> SBT_state
+
+            Vault_create -->|Cấp quyền| BA_setUser
+            Vault_create -.->|Lưu mapping ID| SBT_state
+
+            Vault_confRet -->|Thu hồi quyền| BA_setUser
+            Vault_confRet -->|Cập nhật sách| BA_verifyRet
+
+            Vault_cancel -->|Thu hồi quyền| BA_setUser
+            Vault_cancel -->|Cập nhật sách| BA_verifyRet
+
+            Vault_claim -->|Thu hồi quyền| BA_setUser
+            Vault_claim -->|Đánh dấu hư hỏng| BA_verifyRet
+
+            Vault_perform -->|Kích hoạt| Vault_claim
+        </div>
+
+        <div
+            style="margin-top: 20px; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #2980b9; border-radius: 4px;">
+            <strong>📝 Ghi chú về các thành phần được lược bỏ/đơn giản hóa:</strong>
+            <ul style="margin-top: 10px; margin-bottom: 0; padding-left: 20px;">
+                <li style="margin-bottom: 8px;"><strong>Hợp đồng <code>SuChinToken</code> (ERC-20):</strong> Đã được
+                    loại bỏ khỏi sơ đồ. Phân tích logic cho thấy <code>VinaLibVault</code> cốt lõi hiện tại không trực
+                    tiếp xử lý phân bổ dòng tiền On-chain (Native/ERC-20) trong hàm tạo hợp đồng mà được xử lý thanh
+                    toán Off-chain qua Webhook.</li>
+                <li style="margin-bottom: 8px;"><strong>Quy trình đúc (Mint) Bằng chứng thuê SBT:</strong>
+                    <code>VinaLibVault</code> không tự gọi lệnh đúc SBT mới khi tạo phiên thuê. Thực tế, SBT được đúc
+                    sẵn (pre-mint) bằng Backend, và Vault chỉ thực hiện liên kết (mapping) tới SBT ID đó. Sơ đồ đã lược
+                    bỏ luồng "Vault gọi Mint SBT" để tránh sai lệch.
+                </li>
+                <li><strong>Các hàm quản trị và vòng đời (Admin/Lifecycle):</strong> Các hàm như <code>pause()</code>,
+                    <code>unpause()</code>, <code>setConfig()</code>, <code>setContracts()</code> được ẩn khỏi biểu đồ
+                    nhằm tập trung hoàn toàn vào luồng nghiệp vụ thuê sách cốt lõi (Core Rental Flow).
+                </li>
+            </ul>
+        </div>
+
+        <h3 style="margin-top: 30px; border-bottom: 2px solid #3498db; display: inline-block;">2.1. Luồng Quản Trị &
+            Vòng Đời Hợp Đồng (Admin & Lifecycle Flow)</h3>
+        <p class="description">Sơ đồ phụ mô tả các đặc quyền và thao tác quản trị hệ thống, thiết lập cấu hình và tạm
+            dừng hoạt động.</p>
+        <div class="mermaid">
+            graph TB
+            classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+            classDef adminFunc fill:#ffcdd2,stroke:#c62828,stroke-width:1px;
+            classDef state fill:#ffcc80,stroke:#e65100,stroke-width:1px;
+
+            subgraph Externals["Các Đối Tượng Ngoài Hợp Đồng"]
+            Admin["Quản trị/Hệ thống"]
+            end
+
+            subgraph VinaLibVault["Hợp Đồng: VinaLibVault.sol"]
+            Vault_setConfig["setConfig"]
+            Vault_setContracts["setContracts"]
+            Vault_transferOwnership["transferOwnership"]
+            Vault_state["System Configuration"]
+            end
+
+            subgraph BookAsset["Hợp Đồng: BookAsset.sol"]
+            BA_setRentalContract["setRentalContract"]
+            BA_pause["pause"]
+            BA_unpause["unpause"]
+            BA_transferOwnership["transferOwnership"]
+            BA_state["Book Asset Settings & State"]
+            end
+
+            subgraph RentalAgreementSBT["Hợp Đồng: RentalAgreementSBT.sol"]
+            SBT_setRentalContract["setRentalContract"]
+            SBT_transferOwnership["transferOwnership"]
+            SBT_state["SBT Settings"]
+            end
+
+            %% Tương tác Quản trị
+            Admin -->|Cấu hình Chainlink/Vault| Vault_setConfig
+            Admin -->|Cập nhật SBT/BookAsset| Vault_setContracts
+            Admin -->|Chuyển giao quyền chủ| Vault_transferOwnership
+
+            Admin -->|Liên kết Vault| BA_setRentalContract
+            Admin -->|Ngưng hoạt động| BA_pause
+            Admin -->|Khôi phục hoạt động| BA_unpause
+            Admin -->|Chuyển giao quyền chủ| BA_transferOwnership
+
+            Admin -->|Liên kết Vault| SBT_setRentalContract
+            Admin -->|Chuyển giao quyền chủ| SBT_transferOwnership
+
+            %% Tác động nội bộ
+            Vault_setConfig -.-> Vault_state
+            Vault_setContracts -.-> Vault_state
+            Vault_transferOwnership -.-> Vault_state
+
+            BA_setRentalContract -.-> BA_state
+            BA_pause -.-> BA_state
+            BA_unpause -.-> BA_state
+            BA_transferOwnership -.-> BA_state
+
+            SBT_setRentalContract -.-> SBT_state
+            SBT_transferOwnership -.-> SBT_state
         </div>
     </div>
 
